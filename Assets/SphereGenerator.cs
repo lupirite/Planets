@@ -9,7 +9,7 @@ public class SphereGenerator : MonoBehaviour
 {
     [Header("LOD")]
     public Transform viewer;
-    public float minDist = .5f;
+    public float distOffset;
     public int LODLevels;
     public float LODFactor;
     public float LODPower = .2f;
@@ -26,7 +26,7 @@ public class SphereGenerator : MonoBehaviour
 
     public int getLODLevel(float scaledDist)
     {
-        int level = (int)(1/Mathf.Pow(scaledDist, LODPower)*LODFactor);
+        int level = (int)Mathf.Min(1/Mathf.Pow(scaledDist+distOffset, LODPower)*LODFactor, LODLevels);
         return level;
     }
 
