@@ -141,13 +141,13 @@ public class Chunk : MonoBehaviour
             for (int y = 0; y < chunkRes; y++)
             {
                 Vector3 pos = mapCube(chunkOffset.x*(chunkRes-1) + (float)x * chunkScale, chunkOffset.y*(chunkRes-1) + (float)y * chunkScale);
-                
-                float height = Mathf.Abs(perlin3D(pos * 4) - .5f) / 4;
-                height += Mathf.Pow(1-Mathf.Abs(perlin3D(pos*8)-.5f), 2)/16;
-                height += Mathf.Pow(1 - Mathf.Abs(perlin3D(pos * 16) - .5f), 2) / 32;
-                height += Mathf.Pow(1 - Mathf.Abs(perlin3D(pos * 64) - .5f), 2) / 128;
 
-                pos = pos.normalized / 2 * (1 + height) * sphereGenerator.radius * .87f;
+                //float height = Mathf.Abs(perlin3D(pos * 4) - .5f) / 4;
+                //height += Mathf.Pow(1-Mathf.Abs(perlin3D(pos*8)-.5f), 2)/16;
+                //height += Mathf.Pow(1 - Mathf.Abs(perlin3D(pos * 16) - .5f), 2) / 32;
+                //height += Mathf.Pow(1 - Mathf.Abs(perlin3D(pos * 64) - .5f), 2) / 128;
+                float height = 0;
+                pos = pos.normalized / 2 * (1 + height) * sphereGenerator.radius;
                 if (recenter && x == 0 && y == 0)
                 {
                     offset = pos;
