@@ -12,6 +12,8 @@ public class Chunk : MonoBehaviour
     public float chunkScale = 1;
     public Vector3 center;
 
+    [HideInInspector] public Vector3 offset;
+
     Vector3Int xAxis;
     Vector3Int yAxis;
 
@@ -40,18 +42,26 @@ public class Chunk : MonoBehaviour
                         //print(((float)sphereGenerator.chunkRes / (float)sphereGenerator.fullScaleRes));
                         chunk.chunkScale = nChunkScale * ((float)sphereGenerator.chunkRes / (float)sphereGenerator.chunkRes);
                         chunk.chunkOffset = chunkOffset + new Vector2(x, y) * nChunkScale;
-                        gO.transform.position = transform.position*ScaleManager.instance.celestialScaleFactor;
+                        gO.transform.position = transform.root.position*ScaleManager.instance.celestialScaleFactor;
                         gO.transform.localScale *= ScaleManager.instance.celestialScaleFactor;
                         fullChunks[x*2+y] = gO;
-                        chunk.make();
+                        chunk.make(true);
+                        gO.transform.position += chunk.offset*ScaleManager.instance.celestialScaleFactor;
                         gO.AddComponent<MeshCollider>().sharedMesh = gO.GetComponent<MeshFilter>().mesh;
 
+                        GameObject scaleChunks;
                         if (!GameObject.Find("ScaleChunks"))
                         {
-                            new GameObject("ScaleChunks");
+                            scaleChunks = new GameObject("ScaleChunks");
+                            //scaleChunks.transform.position = transform.root.position * ScaleManager.instance.celestialScaleFactor;
+                        }
+                        else
+                        {
+                            scaleChunks = GameObject.Find("ScaleChunks");
                         }
 
-                        gO.transform.parent = GameObject.Find("ScaleChunks").transform;
+                        gO.transform.parent = scaleChunks.transform;
+                        //transform.localPosition = Vector3.zero;
                     }
                     else
                     {
@@ -91,7 +101,7 @@ public class Chunk : MonoBehaviour
     int chunkRes;
     int numVerts;
     int numTris;
-    public void make()
+    public void make(bool recenter=false)
     {
         if (Application.isPlaying)
         {
@@ -107,7 +117,7 @@ public class Chunk : MonoBehaviour
         xAxis = new Vector3Int(dir[1], dir[2], dir[0]);
         yAxis = new Vector3Int(dir[2], dir[0], dir[1]);
 
-        generate();
+        generate(recenter);
     }
 
     float perlin3D(Vector3 pos)
@@ -116,7 +126,7 @@ public class Chunk : MonoBehaviour
         return (Mathf.PerlinNoise(pos.x+830, pos.y-800) + Mathf.PerlinNoise(pos.x+395, pos.z+2354) + Mathf.PerlinNoise(pos.y-2345, pos.z-5778)) / 3;
     }
 
-    void generate()
+    void generate(bool recenter = false)
     {
         gameObject.AddComponent<MeshFilter>();
         gameObject.AddComponent<MeshRenderer>();
@@ -131,12 +141,18 @@ public class Chunk : MonoBehaviour
             for (int y = 0; y < chunkRes; y++)
             {
                 Vector3 pos = mapCube(chunkOffset.x*(chunkRes-1) + (float)x * chunkScale, chunkOffset.y*(chunkRes-1) + (float)y * chunkScale);
+                
                 float height = Mathf.Abs(perlin3D(pos * 4) - .5f) / 4;
                 height += Mathf.Pow(1-Mathf.Abs(perlin3D(pos*8)-.5f), 2)/16;
                 height += Mathf.Pow(1 - Mathf.Abs(perlin3D(pos * 16) - .5f), 2) / 32;
                 height += Mathf.Pow(1 - Mathf.Abs(perlin3D(pos * 64) - .5f), 2) / 128;
 
-                verts[i] = pos.normalized / 2 * (1 + height) * sphereGenerator.radius*.87f;
+                pos = pos.normalized / 2 * (1 + height) * sphereGenerator.radius * .87f;
+                if (recenter && x == 0 && y == 0)
+                {
+                    offset = pos;
+                }
+                verts[i] = pos-offset;
                 i++;
             }
         }

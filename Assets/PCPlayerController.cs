@@ -9,6 +9,7 @@ public class PCPlayerController : MonoBehaviour
     public Transform groundCheck;
     public float groundCheckRadius;
     public LayerMask groundMask;
+    public AnimationCurve forceWithSpeed;
 
     public float jumpForce;
 
@@ -34,7 +35,7 @@ public class PCPlayerController : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Space) && Physics.CheckSphere(groundCheck.position, groundCheckRadius, groundMask)) GetComponent<Rigidbody>().AddForce(upVector * jumpForce);
 
-        GetComponent<Rigidbody>().AddForce(transform.GetChild(0).right*moveHorizontal*Time.deltaTime*speed + transform.GetChild(0).forward*moveVertical*Time.deltaTime*speed);
+        GetComponent<Rigidbody>().AddForce((transform.GetChild(0).right*moveHorizontal*Time.deltaTime*speed + transform.GetChild(0).forward*moveVertical*Time.deltaTime*speed)*forceWithSpeed.Evaluate(GetComponent<Rigidbody>().velocity.magnitude));
 
     }
 }
