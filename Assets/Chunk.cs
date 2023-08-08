@@ -12,6 +12,8 @@ public class Chunk : MonoBehaviour
     public float chunkScale = 1;
     public Vector3 center;
 
+    public Vector3 normal;
+
     [HideInInspector] public Vector3 offset;
 
     Vector3Int xAxis;
@@ -21,7 +23,7 @@ public class Chunk : MonoBehaviour
 
     private void Update()
     {
-        int aLODLevel = sphereGenerator.getLODLevel(Vector3.Distance(transform.position+center, sphereGenerator.viewer.position));
+        int aLODLevel = sphereGenerator.getLODLevel(transform.position + center, normal, LODLevel);
         if (aLODLevel > LODLevel && (transform.childCount == 0 && LODLevel != sphereGenerator.LODLevels-2 || !fullChunks[0] && LODLevel == sphereGenerator.LODLevels - 2))
         {
             Destroy(transform.GetComponent<MeshRenderer>());
@@ -147,7 +149,7 @@ public class Chunk : MonoBehaviour
                 //height += Mathf.Pow(1 - Mathf.Abs(perlin3D(pos * 16) - .5f), 2) / 32;
                 //height += Mathf.Pow(1 - Mathf.Abs(perlin3D(pos * 64) - .5f), 2) / 128;
                 float height = 0;
-                pos = pos.normalized / 2 * (1 + height) * sphereGenerator.radius;
+                pos = pos.normalized / 2 * (1 + height) * sphereGenerator.diameter;
                 if (recenter && x == 0 && y == 0)
                 {
                     offset = pos;
@@ -184,6 +186,8 @@ public class Chunk : MonoBehaviour
         GetComponent<MeshRenderer>().material = sphereGenerator.material;
 
         center = mesh.bounds.center;
+
+        normal = ((center + transform.position)-transform.root.position).normalized;
     }
 
     public void destroyChunks()

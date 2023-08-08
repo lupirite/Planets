@@ -16,17 +16,38 @@ public class SphereGenerator : MonoBehaviour
     [Header("Generation")]
     public int chunkRes;
     public Material material;
-    public AnimationCurve sideMapFunc;
-    public float radius = 10;
+    public AnimationCurve edgeDetailFalloff;
+    public float diameter = 10;
     [Header("Editor")]
     [Range(2, 255)]
     public int res;
     [HideInInspector] public int chunkVerts;
     [HideInInspector] public int triArrSize;
 
-    public int getLODLevel(float scaledDist)
+    public int getLODLevel(Vector3 chunkPos, Vector3 normal, float LOD)
     {
-        int level = (int)Mathf.Min(1/Mathf.Pow(scaledDist+distOffset, LODPower)*LODFactor, LODLevels);
+        float scaledDist = Vector3.Distance(chunkPos, viewer.position);
+
+        float edgeMultiplier = 1;
+        Vector3 toCenter = transform.position - viewer.position;
+
+        float angle = Vector3.Angle(-toCenter, normal) - 90 / Mathf.Pow(2, LOD);
+
+        if (angle > 60)
+        {
+            edgeMultiplier = 0;
+        }
+        //if (angle > 170) { }
+        else
+        {
+            float d = (viewer.position - transform.position).magnitude;
+            float h = 1-1/(d/(diameter/2));
+            float a = Mathf.Acos((2-Mathf.Pow(h*2, 2))/2)*Mathf.Rad2Deg/2;
+
+            edgeMultiplier = edgeDetailFalloff.Evaluate(angle/a);
+        }
+
+        int level = (int)(Mathf.Min(1/Mathf.Pow(scaledDist+distOffset, LODPower)*LODFactor, LODLevels)*edgeMultiplier);
         return level;
     }
 
@@ -71,6 +92,7 @@ public class SphereGenerator : MonoBehaviour
                 gO.GetComponent<Chunk>().LODLevel = 0;
                 gO.layer = 6;
                 gO.transform.position = transform.position;
+                gO.GetComponent<Chunk>().normal = dir;
             }
         }
     }
