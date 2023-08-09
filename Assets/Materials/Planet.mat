@@ -107,7 +107,7 @@ Material:
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
-    - _LandSmoothness: 0.4
+    - _LandSmoothness: 0.49
     - _Metallic: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.005
