@@ -44,7 +44,7 @@ public class Chunk : MonoBehaviour
                         //print(((float)sphereGenerator.chunkRes / (float)sphereGenerator.fullScaleRes));
                         chunk.chunkScale = nChunkScale * ((float)sphereGenerator.chunkRes / (float)sphereGenerator.chunkRes);
                         chunk.chunkOffset = chunkOffset + new Vector2(x, y) * nChunkScale;
-                        gO.transform.position = transform.root.position*ScaleManager.instance.celestialScaleFactor;
+                        gO.transform.position = Vector3Int.FloorToInt(transform.root.position*ScaleManager.instance.celestialScaleFactor);
                         gO.transform.localScale *= ScaleManager.instance.celestialScaleFactor;
                         fullChunks[x*2+y] = gO;
                         chunk.make(true);
@@ -63,6 +63,12 @@ public class Chunk : MonoBehaviour
                         }
 
                         gO.transform.parent = scaleChunks.transform;
+
+                        gO.AddComponent<FullChunk>();
+                        gO.GetComponent<FullChunk>().groundMask = sphereGenerator.groundMask;
+                        gO.GetComponent<FullChunk>().numTrees = sphereGenerator.numTrees;
+                        gO.GetComponent<FullChunk>().treePrefab = sphereGenerator.treePrefab;
+                        gO.GetComponent<FullChunk>().treeSpread = sphereGenerator.treeSpread;
                         //transform.localPosition = Vector3.zero;
                     }
                     else
@@ -124,7 +130,6 @@ public class Chunk : MonoBehaviour
 
     float perlin3D(Vector3 pos)
     {
-        return 0;
         return (Mathf.PerlinNoise(pos.x+830, pos.y-800) + Mathf.PerlinNoise(pos.x+395, pos.z+2354) + Mathf.PerlinNoise(pos.y-2345, pos.z-5778)) / 3;
     }
 
@@ -136,25 +141,57 @@ public class Chunk : MonoBehaviour
         int i = 0;
 
         Vector3[] verts = new Vector3[numVerts];
+        Vector2[] uvs = new Vector2[numVerts];
         int[] tris = new int[numTris];
 
         for (int x = 0; x < chunkRes; x++)
         {
             for (int y = 0; y < chunkRes; y++)
             {
-                Vector3 pos = mapCube(chunkOffset.x*(chunkRes-1) + (float)x * chunkScale, chunkOffset.y*(chunkRes-1) + (float)y * chunkScale);
+                float alt = 0.5f;
+                float temp = 0.5f;
+                Vector3 pos = (mapCube(chunkOffset.x*(chunkRes-1) + (float)x * chunkScale, chunkOffset.y*(chunkRes-1) + (float)y * chunkScale).normalized / 2 * sphereGenerator.diameter);
 
-                //float height = Mathf.Abs(perlin3D(pos * 4) - .5f) / 4;
-                //height += Mathf.Pow(1-Mathf.Abs(perlin3D(pos*8)-.5f), 2)/16;
-                //height += Mathf.Pow(1 - Mathf.Abs(perlin3D(pos * 16) - .5f), 2) / 32;
-                //height += Mathf.Pow(1 - Mathf.Abs(perlin3D(pos * 64) - .5f), 2) / 128;
                 float height = 0;
-                pos = pos.normalized / 2 * (1 + height) * sphereGenerator.diameter;
+                height += perlin3D(pos * .05f) / 100;
+                height += perlin3D(pos * .2f) / 1000;
+                height += perlin3D(pos * .4f) / 2000;
+                height += Mathf.Pow((.6f - Mathf.Abs(perlin3D(pos * .15f))) * 2, 3)*2 / 700;
+
+                alt = height*50;
+
+                temp = Mathf.Pow(1-(Mathf.Abs(Vector3.Dot(pos.normalized, sphereGenerator.transform.up))+.01f)*.9f, 1.5f);
+
+                bool water = false;
+                if (height < .0065)
+                {
+                    if (height < .006)
+                    {
+                        water = true;
+                        alt += .5f;
+                        height = .0035f;
+                    }
+                    else
+                    {
+                        height = .0035f + (height - .006f) * 6;
+                    }
+                }
+
+                if (!water)
+                {
+                    height += Mathf.Pow((.5f - Mathf.Abs(perlin3D(pos * 20))) * 2, 3) / 2000;
+                    //height += perlin3D(pos * 1000) / 200000;
+                    //height += perlin3D(pos * 2000) / 400000;
+                }
+                pos = sphereGenerator.transform.rotation * (pos * (1 + height));
                 if (recenter && x == 0 && y == 0)
                 {
                     offset = pos;
                 }
-                verts[i] = pos-offset;
+
+                verts[i] = pos - offset;
+
+                uvs[i] = new Vector2(alt, temp);
                 i++;
             }
         }
@@ -180,6 +217,7 @@ public class Chunk : MonoBehaviour
         Mesh mesh = new Mesh();
         mesh.vertices = verts;
         mesh.triangles = tris;
+        mesh.uv = uvs;
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
         GetComponent<MeshFilter>().mesh = mesh;
@@ -187,7 +225,7 @@ public class Chunk : MonoBehaviour
 
         center = mesh.bounds.center;
 
-        normal = ((center + transform.position)-transform.root.position).normalized;
+        normal = Quaternion.Inverse(sphereGenerator.transform.rotation) * (center + offset).normalized;
     }
 
     public void destroyChunks()

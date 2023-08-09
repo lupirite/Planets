@@ -23,29 +23,38 @@ public class SphereGenerator : MonoBehaviour
     public int res;
     [HideInInspector] public int chunkVerts;
     [HideInInspector] public int triArrSize;
+    [Header("FullScale")]
+    public GameObject treePrefab;
+    public int numTrees = 5;
+    public LayerMask groundMask;
+    public float treeSpread = 10;
 
     public int getLODLevel(Vector3 chunkPos, Vector3 normal, float LOD)
     {
         float scaledDist = Vector3.Distance(chunkPos, viewer.position);
 
         float edgeMultiplier = 1;
-        Vector3 toCenter = transform.position - viewer.position;
+        //Vector3 toCenter = transform.position - viewer.position;
 
-        float angle = Vector3.Angle(-toCenter, normal) - 90 / Mathf.Pow(2, LOD);
+        //float angle = Vector3.Angle(-toCenter, transform.rotation*normal) - 90 / Mathf.Pow(2, LOD);
 
-        if (angle > 60)
-        {
-            edgeMultiplier = 0;
-        }
+        //if (angle > 60)
+        //{
+        //    edgeMultiplier = 0;
+        //}
         //if (angle > 170) { }
+        /*
         else
         {
             float d = (viewer.position - transform.position).magnitude;
             float h = 1-1/(d/(diameter/2));
             float a = Mathf.Acos((2-Mathf.Pow(h*2, 2))/2)*Mathf.Rad2Deg/2;
 
-            edgeMultiplier = edgeDetailFalloff.Evaluate(angle/a);
-        }
+            if (a < angle)
+            {
+                edgeMultiplier = .5f;
+            }
+        }*/
 
         int level = (int)(Mathf.Min(1/Mathf.Pow(scaledDist+distOffset, LODPower)*LODFactor, LODLevels)*edgeMultiplier);
         return level;
