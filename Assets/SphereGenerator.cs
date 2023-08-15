@@ -18,6 +18,9 @@ public class SphereGenerator : MonoBehaviour
     public Material material;
     public AnimationCurve edgeDetailFalloff;
     public float diameter = 10;
+    public Vector3 noiseOffset;
+    public float minAlt;
+    public float maxAlt;
     [Header("Editor")]
     [Range(2, 255)]
     public int res;

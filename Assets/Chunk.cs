@@ -142,6 +142,7 @@ public class Chunk : MonoBehaviour
 
         Vector3[] verts = new Vector3[numVerts];
         Vector2[] uvs = new Vector2[numVerts];
+        Vector2[] uv2 = new Vector2[numVerts];
         int[] tris = new int[numTris];
 
         for (int x = 0; x < chunkRes; x++)
@@ -150,17 +151,22 @@ public class Chunk : MonoBehaviour
             {
                 float alt = 0.5f;
                 float temp = 0.5f;
+                float humidity = 0.5f;
                 Vector3 pos = (mapCube(chunkOffset.x*(chunkRes-1) + (float)x * chunkScale, chunkOffset.y*(chunkRes-1) + (float)y * chunkScale).normalized / 2 * sphereGenerator.diameter);
 
+                Vector3 samplePos = pos + sphereGenerator.noiseOffset;
                 float height = 0;
-                height += perlin3D(pos * .05f) / 100;
-                height += perlin3D(pos * .2f) / 1000;
-                height += perlin3D(pos * .4f) / 2000;
-                height += Mathf.Pow((.6f - Mathf.Abs(perlin3D(pos * .15f))) * 2, 3)*2 / 700;
+                height += perlin3D(samplePos * .05f) / 100;
+                float val = perlin3D(samplePos * .2f);
+                height += val / 1000;
+                humidity = Mathf.Pow(val-.5f, 2)*2;
+                humidity += Mathf.Pow((.6f - Mathf.Abs(perlin3D(samplePos * .1f))) * 2, 2);
+                height += perlin3D(samplePos * .4f) / 2000;
+                height += Mathf.Pow((.6f - Mathf.Abs(perlin3D(samplePos * .15f))) * 2, 3)*2 / 700;
 
-                alt = height*50;
+                alt = (height - sphereGenerator.minAlt) / (sphereGenerator.maxAlt - sphereGenerator.minAlt);
 
-                temp = Mathf.Pow(1-(Mathf.Abs(Vector3.Dot(pos.normalized, sphereGenerator.transform.up))+.01f)*.9f, 1.5f);
+                temp = Mathf.Pow(1-(Mathf.Abs(Vector3.Dot(samplePos.normalized, sphereGenerator.transform.up))+.01f)*.9f, 1.5f);
 
                 bool water = false;
                 if (height < .0065)
@@ -168,7 +174,6 @@ public class Chunk : MonoBehaviour
                     if (height < .006)
                     {
                         water = true;
-                        alt += .5f;
                         height = .0035f;
                     }
                     else
@@ -179,7 +184,9 @@ public class Chunk : MonoBehaviour
 
                 if (!water)
                 {
-                    height += Mathf.Pow((.5f - Mathf.Abs(perlin3D(pos * 20))) * 2, 3) / 2000;
+                    height += Mathf.Pow((.5f - Mathf.Abs(perlin3D(samplePos * 20))) * 2, 3) / 2000;
+                    humidity += Mathf.Pow((.5f - Mathf.Abs(perlin3D(samplePos * 500))) * 2, 3)/2;
+                    humidity += Mathf.Pow((.5f - Mathf.Abs(perlin3D(samplePos * 2000))) * 2, 3) / 4;
                     //height += perlin3D(pos * 1000) / 200000;
                     //height += perlin3D(pos * 2000) / 400000;
                 }
@@ -192,6 +199,7 @@ public class Chunk : MonoBehaviour
                 verts[i] = pos - offset;
 
                 uvs[i] = new Vector2(alt, temp);
+                uv2[i] = new Vector2(humidity, 0);
                 i++;
             }
         }
@@ -218,6 +226,7 @@ public class Chunk : MonoBehaviour
         mesh.vertices = verts;
         mesh.triangles = tris;
         mesh.uv = uvs;
+        mesh.uv2 = uv2;
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
         GetComponent<MeshFilter>().mesh = mesh;
