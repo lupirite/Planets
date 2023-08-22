@@ -6,6 +6,8 @@ public class navBall : MonoBehaviour
 {
     void Update()
     {
-        transform.rotation = Quaternion.identity * Quaternion.Euler(-90, 0, 0);
+        Transform planet = SphereGenerator.getNearest(transform.position);
+        Vector3 up = -(planet.position - transform.position).normalized;
+        transform.forward = up;
     }
 }
