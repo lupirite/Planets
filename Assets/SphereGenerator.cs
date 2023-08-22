@@ -21,6 +21,7 @@ public class SphereGenerator : MonoBehaviour
     public Vector3 noiseOffset;
     public float minAlt;
     public float maxAlt;
+    public float smoothingAngle = 5;
     [Header("Editor")]
     [Range(2, 255)]
     public int res;
@@ -37,27 +38,26 @@ public class SphereGenerator : MonoBehaviour
         float scaledDist = Vector3.Distance(chunkPos, viewer.position);
 
         float edgeMultiplier = 1;
-        //Vector3 toCenter = transform.position - viewer.position;
+        Vector3 toCenter = transform.position - viewer.position;
 
-        //float angle = Vector3.Angle(-toCenter, transform.rotation*normal) - 90 / Mathf.Pow(2, LOD);
+        float angle = Vector3.Angle(-toCenter, transform.rotation*normal) - 90 / Mathf.Pow(2, LOD);
 
-        //if (angle > 60)
-        //{
-        //    edgeMultiplier = 0;
-        //}
-        //if (angle > 170) { }
-        /*
+        if (angle > 60)
+        {
+            edgeMultiplier = 0;
+        }
+        if (angle > 170) { }
         else
         {
-            float d = (viewer.position - transform.position).magnitude;
-            float h = 1-1/(d/(diameter/2));
-            float a = Mathf.Acos((2-Mathf.Pow(h*2, 2))/2)*Mathf.Rad2Deg/2;
+            float dist = (viewer.position - transform.position).magnitude;
+            float h = 1-1/(dist/(diameter/2));
+            float surfaceAngle = Mathf.Acos((2-Mathf.Pow(h*2, 2))/2)*Mathf.Rad2Deg/2;
 
-            if (a < angle)
+            if (surfaceAngle < angle) // surface angle is the angle that represents how much of the surface (assumed to be a sphere) is visible. Angle is the angle between the viewer, the center of the planet, and the chunk center
             {
-                edgeMultiplier = .5f;
+                edgeMultiplier = Mathf.Max(0, Mathf.Min(smoothingAngle, surfaceAngle - angle)/smoothingAngle);
             }
-        }*/
+        }
 
         int level = (int)(Mathf.Min(1/Mathf.Pow(scaledDist+distOffset, LODPower)*LODFactor, LODLevels)*edgeMultiplier);
         return level;

@@ -90,18 +90,9 @@ public class Chunk : MonoBehaviour
                 }
             }
         }
-        else if (aLODLevel == LODLevel && LODLevel != sphereGenerator.LODLevels - 2 && aLODLevel == LODLevel && transform.childCount > 0) 
+        else if (aLODLevel <= LODLevel && (transform.childCount > 0 || fullChunks[0])) 
         {
             destroyChunks();
-            generate();
-        }
-        else if (aLODLevel == LODLevel && LODLevel == sphereGenerator.LODLevels - 2 && fullChunks[0])
-        {
-            for (int i = 0; i < fullChunks.Length; i++)
-            {
-                Destroy(fullChunks[i]);
-                fullChunks[i] = null;
-            }
             generate();
         }
     }
@@ -241,7 +232,17 @@ public class Chunk : MonoBehaviour
     {
         while (transform.childCount > 0)
         {
+            if (transform.GetChild(0).GetComponent<Chunk>())
+                transform.GetChild(0).GetComponent<Chunk>().destroyChunks();
             DestroyImmediate(transform.GetChild(0).gameObject);
+        }
+        if (fullChunks[0] != null)
+        {
+            for (int i = 0; i < fullChunks.Length; i++)
+            {
+                Destroy(fullChunks[i]);
+                fullChunks[i] = null;
+            }
         }
     }
 
