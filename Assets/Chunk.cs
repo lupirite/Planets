@@ -21,79 +21,91 @@ public class Chunk : MonoBehaviour
 
     GameObject[] fullChunks = new GameObject[4];
 
+    private int ID;
+    private void Start()
+    {
+        ID = (int)(chunkOffset.x*100) + (int)(chunkOffset.y*100);
+    }
+
+    int frame = 0;
     private void Update()
     {
-        int aLODLevel = sphereGenerator.getLODLevel(transform.position + center, normal, LODLevel);
-        if (aLODLevel > LODLevel && (transform.childCount == 0 && LODLevel != sphereGenerator.LODLevels-2 || !fullChunks[0] && LODLevel == sphereGenerator.LODLevels - 2))
+        frame++;
+        frame = frame % sphereGenerator.resizeCheckFrameInterval;
+        if ((ID+frame) % sphereGenerator.resizeCheckFrameInterval == 0)
         {
-            Destroy(transform.GetComponent<MeshRenderer>());
-            Destroy(transform.GetComponent<MeshFilter>());
-
-            for (int x = 0; x < 2; x++)
+            int aLODLevel = sphereGenerator.getLODLevel(transform.position + center, normal, LODLevel);
+            if (aLODLevel > LODLevel && (transform.childCount == 0 && LODLevel != sphereGenerator.LODLevels - 2 || !fullChunks[0] && LODLevel == sphereGenerator.LODLevels - 2))
             {
-                for (int y = 0; y < 2; y++)
-                {
-                    if (LODLevel == sphereGenerator.LODLevels-2)
-                    {
-                        GameObject gO = new GameObject("UnscaledChunk(" + x.ToString() + ", " + y.ToString() + ")");
-                        Chunk chunk = gO.AddComponent<Chunk>();
-                        chunk.dir = dir;
-                        chunk.sphereGenerator = sphereGenerator;
-                        chunk.LODLevel = LODLevel + 1;
-                        float nChunkScale = 1 / Mathf.Pow(2, LODLevel + 1);
-                        //print(((float)sphereGenerator.chunkRes / (float)sphereGenerator.fullScaleRes));
-                        chunk.chunkScale = nChunkScale * ((float)sphereGenerator.chunkRes / (float)sphereGenerator.chunkRes);
-                        chunk.chunkOffset = chunkOffset + new Vector2(x, y) * nChunkScale;
-                        gO.transform.position = Vector3Int.FloorToInt(transform.root.position*ScaleManager.instance.celestialScaleFactor);
-                        gO.transform.localScale *= ScaleManager.instance.celestialScaleFactor;
-                        fullChunks[x*2+y] = gO;
-                        chunk.make(true);
-                        gO.transform.position += chunk.offset*ScaleManager.instance.celestialScaleFactor;
-                        gO.AddComponent<MeshCollider>().sharedMesh = gO.GetComponent<MeshFilter>().mesh;
+                Destroy(transform.GetComponent<MeshRenderer>());
+                Destroy(transform.GetComponent<MeshFilter>());
 
-                        GameObject scaleChunks;
-                        if (!GameObject.Find("ScaleChunks"))
+                for (int x = 0; x < 2; x++)
+                {
+                    for (int y = 0; y < 2; y++)
+                    {
+                        if (LODLevel == sphereGenerator.LODLevels - 2)
                         {
-                            scaleChunks = new GameObject("ScaleChunks");
-                            //scaleChunks.transform.position = transform.root.position * ScaleManager.instance.celestialScaleFactor;
+                            GameObject gO = new GameObject("UnscaledChunk(" + x.ToString() + ", " + y.ToString() + ")");
+                            Chunk chunk = gO.AddComponent<Chunk>();
+                            chunk.dir = dir;
+                            chunk.sphereGenerator = sphereGenerator;
+                            chunk.LODLevel = LODLevel + 1;
+                            float nChunkScale = 1 / Mathf.Pow(2, LODLevel + 1);
+                            //print(((float)sphereGenerator.chunkRes / (float)sphereGenerator.fullScaleRes));
+                            chunk.chunkScale = nChunkScale * ((float)sphereGenerator.chunkRes / (float)sphereGenerator.chunkRes);
+                            chunk.chunkOffset = chunkOffset + new Vector2(x, y) * nChunkScale;
+                            gO.transform.position = Vector3Int.FloorToInt(transform.root.position * ScaleManager.instance.celestialScaleFactor);
+                            gO.transform.localScale *= ScaleManager.instance.celestialScaleFactor;
+                            fullChunks[x * 2 + y] = gO;
+                            chunk.make(true);
+                            gO.transform.position += chunk.offset * ScaleManager.instance.celestialScaleFactor;
+                            gO.AddComponent<MeshCollider>().sharedMesh = gO.GetComponent<MeshFilter>().mesh;
+
+                            GameObject scaleChunks;
+                            if (!GameObject.Find("ScaleChunks"))
+                            {
+                                scaleChunks = new GameObject("ScaleChunks");
+                                //scaleChunks.transform.position = transform.root.position * ScaleManager.instance.celestialScaleFactor;
+                            }
+                            else
+                            {
+                                scaleChunks = GameObject.Find("ScaleChunks");
+                            }
+
+                            gO.transform.parent = scaleChunks.transform;
+
+                            gO.AddComponent<FullChunk>();
+                            gO.GetComponent<FullChunk>().groundMask = sphereGenerator.groundMask;
+                            gO.GetComponent<FullChunk>().numTrees = sphereGenerator.numTrees;
+                            gO.GetComponent<FullChunk>().treePrefab = sphereGenerator.treePrefab;
+                            gO.GetComponent<FullChunk>().treeSpread = sphereGenerator.treeSpread;
+                            //transform.localPosition = Vector3.zero;
                         }
                         else
                         {
-                            scaleChunks = GameObject.Find("ScaleChunks");
+                            GameObject gO = new GameObject("Chunk(" + x.ToString() + ", " + y.ToString() + ")");
+                            gO.transform.parent = transform;
+                            Chunk chunk = gO.AddComponent<Chunk>();
+                            chunk.dir = dir;
+                            chunk.sphereGenerator = sphereGenerator;
+                            chunk.LODLevel = LODLevel + 1;
+                            float nChunkScale = 1 / Mathf.Pow(2, LODLevel + 1);
+                            chunk.chunkScale = nChunkScale;
+                            chunk.chunkOffset = chunkOffset + new Vector2(x, y) * nChunkScale;
+                            gO.transform.position = transform.position;
+                            gO.layer = 6;
+                            chunk.make();
                         }
 
-                        gO.transform.parent = scaleChunks.transform;
-
-                        gO.AddComponent<FullChunk>();
-                        gO.GetComponent<FullChunk>().groundMask = sphereGenerator.groundMask;
-                        gO.GetComponent<FullChunk>().numTrees = sphereGenerator.numTrees;
-                        gO.GetComponent<FullChunk>().treePrefab = sphereGenerator.treePrefab;
-                        gO.GetComponent<FullChunk>().treeSpread = sphereGenerator.treeSpread;
-                        //transform.localPosition = Vector3.zero;
                     }
-                    else
-                    {
-                        GameObject gO = new GameObject("Chunk(" + x.ToString()+", "+y.ToString()+")");
-                        gO.transform.parent = transform;
-                        Chunk chunk = gO.AddComponent<Chunk>();
-                        chunk.dir = dir;
-                        chunk.sphereGenerator = sphereGenerator;
-                        chunk.LODLevel = LODLevel+1;
-                        float nChunkScale = 1/Mathf.Pow(2, LODLevel+1);
-                        chunk.chunkScale = nChunkScale;
-                        chunk.chunkOffset = chunkOffset + new Vector2(x, y) * nChunkScale;
-                        gO.transform.position = transform.position;
-                        gO.layer = 6;
-                        chunk.make();
-                    }
-                    
                 }
             }
-        }
-        else if (aLODLevel <= LODLevel && (transform.childCount > 0 || fullChunks[0])) 
-        {
-            destroyChunks();
-            generate();
+            else if (aLODLevel <= LODLevel && (transform.childCount > 0 || fullChunks[0]))
+            {
+                destroyChunks();
+                generate();
+            }
         }
     }
 
@@ -126,6 +138,10 @@ public class Chunk : MonoBehaviour
 
     void generate(bool recenter = false)
     {
+        if (GetComponent<MeshRenderer>())
+        {
+            return;
+        }
         gameObject.AddComponent<MeshFilter>();
         gameObject.AddComponent<MeshRenderer>();
 

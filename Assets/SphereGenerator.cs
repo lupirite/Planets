@@ -22,6 +22,7 @@ public class SphereGenerator : MonoBehaviour
     public float minAlt;
     public float maxAlt;
     public float smoothingAngle = 5;
+    public int resizeCheckFrameInterval = 5;
     [Header("Editor")]
     [Range(2, 255)]
     public int res;
