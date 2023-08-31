@@ -33,6 +33,8 @@ public class SphereGenerator : MonoBehaviour
     public int numTrees = 5;
     public LayerMask groundMask;
     public float treeSpread = 10;
+    [Header("MarchingChunks")]
+    public float renderDistance;
 
     public int getLODLevel(Vector3 chunkPos, Vector3 normal, float LOD)
     {

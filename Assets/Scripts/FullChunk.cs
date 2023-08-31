@@ -8,8 +8,14 @@ public class FullChunk : MonoBehaviour
     public int numTrees = 5;
     public LayerMask groundMask;
     public float treeSpread;
+
+    private int ID;
+    private SphereGenerator sphereGenerator;
+
+    [HideInInspector]public GameObject marchingChunk;
     private void Start()
     {
+        sphereGenerator = GetComponent<Chunk>().sphereGenerator;
         for (int i = 0; i < numTrees; i++)
         {
             Vector3 up = GetComponent<Chunk>().sphereGenerator.transform.rotation*GetComponent<Chunk>().normal;
@@ -27,7 +33,39 @@ public class FullChunk : MonoBehaviour
                 tree.transform.localScale *= Random.Range(.8f, 1.4f);
             }
         }
+
+        ID = GetComponent<Chunk>().ID;
     }
+
+    int frame = 0;
+    private void Update()
+    {
+        frame++;
+        frame = frame % sphereGenerator.resizeCheckFrameInterval;
+        if ((ID + frame) % sphereGenerator.resizeCheckFrameInterval == 0)
+        {
+            float dist = Vector3.Distance(transform.position+GetComponent<Chunk>().center, sphereGenerator.viewer.transform.position);
+            if (dist < sphereGenerator.renderDistance)
+            {
+                if (!marchingChunk)
+                {
+                    GetComponent<MeshRenderer>().enabled = false;
+                    marchingChunk = new GameObject("MarchingChunk");
+                    marchingChunk.transform.parent = transform;
+                    marchingChunk.AddComponent<MarchingChunkGenerator>();
+                }
+            }
+            else
+            {
+                if (marchingChunk)
+                {
+                    GetComponent<MeshRenderer>().enabled = true;
+                    Destroy(marchingChunk);
+                }
+            }
+        }
+    }
+
     /*
     private void OnDrawGizmos()
     {

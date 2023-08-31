@@ -21,7 +21,7 @@ public class Chunk : MonoBehaviour
 
     GameObject[] fullChunks = new GameObject[4];
 
-    private int ID;
+    [HideInInspector]public int ID;
     private void Start()
     {
         ID = (int)(chunkOffset.x*100) + (int)(chunkOffset.y*100);
@@ -251,6 +251,10 @@ public class Chunk : MonoBehaviour
 
     public void destroyChunks()
     {
+        if (LODLevel == sphereGenerator.LODLevels - 1)
+        {
+            return;
+        }
         while (transform.childCount > 0)
         {
             if (transform.GetChild(0).GetComponent<Chunk>())
