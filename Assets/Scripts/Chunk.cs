@@ -278,8 +278,12 @@ public class Chunk : MonoBehaviour
 
     float adjustVerts(float x)
     {
-        return x;
-        //return sphereGenerator.sideMapFunc.Evaluate(Mathf.Abs(x))*Mathf.Sign(x);
+        return sideMapFunc(Mathf.Abs(x))*Mathf.Sign(x);
+    }
+
+    float sideMapFunc(float x)
+    {
+        return Mathf.Pow(2/(2-x)-1, .8f);
     }
 
     float mapSide(float x)
