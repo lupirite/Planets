@@ -162,14 +162,18 @@ public class Chunk : MonoBehaviour
                 Vector3 pos = (mapCube(chunkOffset.x*(chunkRes-1) + (float)x * chunkScale, chunkOffset.y*(chunkRes-1) + (float)y * chunkScale).normalized / 2 * sphereGenerator.diameter);
 
                 Vector3 samplePos = pos + sphereGenerator.noiseOffset;
+                samplePos += new Vector3(perlin3D(samplePos + new Vector3(1000, 200, 50) * .45f)/500, perlin3D(samplePos + new Vector3(-1000, 200, 50) * .45f)/500, perlin3D(samplePos + new Vector3(1000, -200, 50) * .45f)/500) + new Vector3(perlin3D(samplePos + new Vector3(1000, 200, 50) * 400f)/1000, perlin3D(samplePos + new Vector3(-100, 200, 50) * 400f)/1000, perlin3D(samplePos + new Vector3(1000, -2000, 50) * 400f)/1000);
                 float height = 0;
-                height += perlin3D(samplePos * .05f) / 100;
+                height += perlin3D(samplePos * .05f) / 100f;
                 float val = perlin3D(samplePos * .2f);
+                samplePos += new Vector3(300, 200);
                 height += val / 1000;
-                humidity = Mathf.Pow(val-.5f, 2)*2;
-                humidity += Mathf.Pow((.6f - Mathf.Abs(perlin3D(samplePos * .1f))) * 2, 2);
-                height += perlin3D(samplePos * .4f) / 2000;
-                height += Mathf.Pow((.6f - Mathf.Abs(perlin3D(samplePos * .15f))) * 2, 3)*2 / 700;
+                humidity = Mathf.Pow(val-.5f, 2)*2f;
+                humidity += Mathf.Pow((.6f - Mathf.Abs(perlin3D(samplePos * .1f))) * 2f, 2);
+                samplePos += new Vector3(1000, -200);
+                height += perlin3D(samplePos * .4f) / 2000f;
+                samplePos += new Vector3(2000, -2300);
+                height += Mathf.Pow((.6f - Mathf.Abs(perlin3D(samplePos * .15f))) * 2f, 3)*2f / 700f;
 
                 alt = (height - sphereGenerator.minAlt) / (sphereGenerator.maxAlt - sphereGenerator.minAlt);
 
@@ -191,9 +195,10 @@ public class Chunk : MonoBehaviour
 
                 if (!water)
                 {
-                    height += Mathf.Pow((.5f - Mathf.Abs(perlin3D(samplePos * 20))) * 2, 3) / 2000;
-                    humidity += Mathf.Pow((.5f - Mathf.Abs(perlin3D(samplePos * 500))) * 2, 3)/2;
-                    humidity += Mathf.Pow((.5f - Mathf.Abs(perlin3D(samplePos * 2000))) * 2, 3) / 4;
+                    samplePos += new Vector3(100, -2000);
+                    height += Mathf.Pow((.5f - Mathf.Abs(perlin3D(samplePos * 20f))) * 2f, 3) / 4000f;
+                    humidity += Mathf.Pow((.5f - Mathf.Abs(perlin3D(samplePos * 500f))) * 2f, 3)/2f;
+                    humidity += Mathf.Pow((.5f - Mathf.Abs(perlin3D(samplePos * 2000f))) * 2f, 3) / 4f;
                     //height += perlin3D(pos * 1000) / 200000;
                     //height += perlin3D(pos * 2000) / 400000;
                 }
