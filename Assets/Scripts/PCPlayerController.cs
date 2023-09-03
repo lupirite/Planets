@@ -19,7 +19,7 @@ public class PCPlayerController : MonoBehaviour
         Vector3 upVector = dir.normalized;
         transform.up = upVector;
 
-        GetComponent<Rigidbody>().AddForce(-transform.up * planet.GetComponent<GravityEffector>().g*10000 / Mathf.Pow(dir.magnitude, 2)/4);
+        GetComponent<Rigidbody>().AddForce(-transform.up * planet.GetComponent<GravityEffector>().g*10000 / Mathf.Pow(dir.magnitude * (ScaleManager.instance.celestialScaleFactor / 100000), 2)/4);
 
         // Read WASD inputs
         float moveHorizontal = 0;

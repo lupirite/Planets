@@ -70,6 +70,12 @@ public struct VectorD3
     {
         return this / this.magnitude();
     }
+
+    public double Dot(VectorD3 other)
+    {
+        return x * other.x + y * other.y + z * other.z;
+    }
+
     public static readonly VectorD3 zero = new VectorD3(0, 0, 0);
 }
 

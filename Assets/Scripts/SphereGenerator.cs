@@ -38,8 +38,7 @@ public class SphereGenerator : MonoBehaviour
 
     public int getLODLevel(Vector3 chunkPos, Vector3 normal, float LOD)
     {
-        float scaledDist = Vector3.Distance(chunkPos, viewer.position);
-
+        float scaledDist = Vector3.Distance(chunkPos, viewer.position)*(ScaleManager.instance.celestialScaleFactor/100000);
         float edgeMultiplier = 1;
         Vector3 toCenter = transform.position - viewer.position;
 

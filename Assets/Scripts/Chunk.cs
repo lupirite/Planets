@@ -131,12 +131,17 @@ public class Chunk : MonoBehaviour
 
         generate(recenter);
     }
-
-    float perlin3D(Vector3 pos)
+    /*
+    double simplex3D(VectorD3 pos)
     {
-        return (Mathf.PerlinNoise(pos.x+830, pos.y-800) + Mathf.PerlinNoise(pos.x+395, pos.z+2354) + Mathf.PerlinNoise(pos.y-2345, pos.z-5778)) / 3;
+        return (DoubleNoise.PerlinNoise(pos.x+830d, pos.y-800d) + DoubleNoise.PerlinNoise(pos.x+395d, pos.z+2354d) + DoubleNoise.PerlinNoise(pos.y-2345d, pos.z-5778d)) / 3;
     }
-
+    */
+    
+    static double simplex3D(VectorD3 pos)
+    {
+        return DoubleNoise.doubleNoise.Evaluate(pos.x, pos.y, pos.z);
+    }
     void generate(bool recenter = false)
     {
         if (GetComponent<MeshRenderer>())
@@ -157,52 +162,19 @@ public class Chunk : MonoBehaviour
         {
             for (int y = 0; y < chunkRes; y++)
             {
-                float alt = 0.5f;
-                float temp = 0.5f;
-                float humidity = 0.5f;
-                VectorD3 pos = (mapCube((double)(chunkOffset.x*(chunkRes-1)) + (double)x * chunkScale, (double)(chunkOffset.y*(chunkRes-1)) + (double)y * chunkScale).normalized() / 2 * sphereGenerator.diameter);
+                double alt = 0.75d;
+                double temp = 0.5d;
+                double humidity = 0.5d;
+                VectorD3 pos = (mapCube((double)(chunkOffset.x*(chunkRes-1)) + (double)x * chunkScale, (double)(chunkOffset.y*(chunkRes-1)) + (double)y * chunkScale, chunkRes, xAxis, yAxis, dir).normalized() / 2 * sphereGenerator.diameter);
 
-                Vector3 samplePos = (Vector3)(pos + (VectorD3)sphereGenerator.noiseOffset);
-                samplePos += new Vector3(perlin3D(samplePos + new Vector3(1000, 200, 50) * .45f)/500, perlin3D(samplePos + new Vector3(-1000, 200, 50) * .45f)/500, perlin3D(samplePos + new Vector3(1000, -200, 50) * .45f)/500) + new Vector3(perlin3D(samplePos + new Vector3(1000, 200, 50) * 400f)/1000, perlin3D(samplePos + new Vector3(-100, 200, 50) * 400f)/1000, perlin3D(samplePos + new Vector3(1000, -2000, 50) * 400f)/1000);
-                float height = 0;
-                height += perlin3D(samplePos * .05f) / 100f;
-                float val = perlin3D(samplePos * .2f);
-                samplePos += new Vector3(300, 200);
-                height += val / 1000;
-                humidity = Mathf.Pow(val-.5f, 2)*2f;
-                humidity += Mathf.Pow((.6f - Mathf.Abs(perlin3D(samplePos * .1f))) * 2f, 2);
-                samplePos += new Vector3(1000, -200);
-                height += perlin3D(samplePos * .4f) / 2000f;
-                samplePos += new Vector3(2000, -2300);
-                height += Mathf.Pow((.6f - Mathf.Abs(perlin3D(samplePos * .15f))) * 2f, 3)*2f / 700f;
-
+                VectorD3 samplePos = (pos + (VectorD3)sphereGenerator.noiseOffset)/4;
+                samplePos += new VectorD3(simplex3D(samplePos + new VectorD3(1000, 200, 50) * .45d)/500, simplex3D(samplePos + new VectorD3(-1000, 200, 50) * .45d)/500, simplex3D(samplePos + new VectorD3(1000, -200, 50) * .45d)/500) + new VectorD3(simplex3D(samplePos + new VectorD3(1000, 200, 50) * 400d)/1000, simplex3D(samplePos + new VectorD3(-100, 200, 50) * 400d)/1000, simplex3D(samplePos + new VectorD3(1000, -2000, 50) * 400d)/1000);
+                
+                double height = getHeight(samplePos);
+                humidity = getHumidity(samplePos);
+                temp = Math.Pow(1 - (Math.Abs(pos.normalized().Dot((VectorD3)sphereGenerator.transform.up)) + .01d) * .9d, 1.5d)+simplex3D(pos*.1)/10;
                 alt = (height - sphereGenerator.minAlt) / (sphereGenerator.maxAlt - sphereGenerator.minAlt);
 
-                temp = Mathf.Pow(1-(Mathf.Abs(Vector3.Dot(samplePos.normalized, sphereGenerator.transform.up))+.01f)*.9f, 1.5f);
-
-                bool water = false;
-                if (height < .0065)
-                {
-                    if (height < .006)
-                    {
-                        water = true;
-                        height = .0035f;
-                    }
-                    else
-                    {
-                        height = .0035f + (height - .006f) * 6;
-                    }
-                }
-
-                if (!water)
-                {
-                    samplePos += new Vector3(100, -2000);
-                    height += Mathf.Pow((.5f - Mathf.Abs(perlin3D(samplePos * 20f))) * 2f, 3) / 4000f;
-                    humidity += Mathf.Pow((.5f - Mathf.Abs(perlin3D(samplePos * 500f))) * 2f, 3)/2f;
-                    humidity += Mathf.Pow((.5f - Mathf.Abs(perlin3D(samplePos * 2000f))) * 2f, 3) / 4f;
-                    //height += perlin3D(pos * 1000) / 200000;
-                    //height += perlin3D(pos * 2000) / 400000;
-                }
                 pos = (VectorD3)(sphereGenerator.transform.rotation * (pos * (1 + height)));
                 if (recenter && x == 0 && y == 0)
                 {
@@ -211,8 +183,8 @@ public class Chunk : MonoBehaviour
 
                 verts[i] = pos - offset;
 
-                uvs[i] = new Vector2(alt, temp);
-                uv2[i] = new Vector2(humidity, 0);
+                uvs[i] = new Vector2((float)alt, (float)temp);
+                uv2[i] = new Vector2((float)humidity, 0);
                 i++;
             }
         }
@@ -280,27 +252,51 @@ public class Chunk : MonoBehaviour
         }
     }
 
-    VectorD3 mapCube(double x, double y) {
+    public static VectorD3 mapCube(double x, double y, int chunkRes, Vector3 xAxis, Vector3 yAxis, Vector3 dir) {
         double hr = (double)chunkRes / 2d;
         double xp = Math.Abs((double)x - hr);
         double yp = Math.Abs((double)y - hr);
-        double xs = mapSide(x);
-        double ys = mapSide(y);
+        double xs = mapSide(x, chunkRes);
+        double ys = mapSide(y, chunkRes);
         return (VectorD3)xAxis * adjustVerts(xs*2)/2d + (VectorD3)yAxis * adjustVerts(ys*2)/2d + (VectorD3)dir / 2d;
     }
 
-    double adjustVerts(double x)
+    public static double adjustVerts(double x)
     {
         return sideMapFunc(Math.Abs(x))*Math.Sign(x);
     }
 
-    double sideMapFunc(double x)
+    public static double sideMapFunc(double x)
     {
         return Math.Pow(2/(2-x)-1, .8f);
     }
 
-    double mapSide(double x)
+    public static double mapSide(double x, int chunkRes)
     {
         return (x / (float)(chunkRes - 1) - .5f);
+    }
+
+    public static double getHeight(VectorD3 pos)
+    {
+        double h = 0;
+        // distant
+        h += simplex3D(pos * .02d) / 50d;
+        h += simplex3D(pos * .1d) / 100d;
+        h += simplex3D(pos * 50d) / 10000d;
+
+        h -= .001f;
+        if (h < 0)
+        {
+            h = 0;
+        }
+
+        // surface
+        h += simplex3D(pos * 500d) / 500000d;
+        return h;
+    }
+
+    public static double getHumidity(VectorD3 pos)
+    {
+        return simplex3D(pos * 1000d) * .5d + simplex3D(pos * 10000d)*.1d;
     }
 }

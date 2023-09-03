@@ -53,6 +53,9 @@ public class FullChunk : MonoBehaviour
                     marchingChunk = new GameObject("MarchingChunk");
                     marchingChunk.transform.parent = transform;
                     marchingChunk.AddComponent<MarchingChunkGenerator>();
+
+                    MarchingChunkGenerator cg = marchingChunk.GetComponent<MarchingChunkGenerator>();
+                    cg.chunkOffset = GetComponent<Chunk>().chunkOffset;
                 }
             }
             else
