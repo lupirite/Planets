@@ -2,10 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
+using System;
 
 public class Chunk : MonoBehaviour
 {
-    public Vector2 chunkOffset = Vector2.zero;
+    public VectorD2 chunkOffset = VectorD2.zero;
     public SphereGenerator sphereGenerator;
     public Vector3Int dir;
     public int LODLevel;
@@ -14,7 +15,7 @@ public class Chunk : MonoBehaviour
 
     public Vector3 normal;
 
-    [HideInInspector] public Vector3 offset;
+    [HideInInspector] public VectorD3 offset;
 
     Vector3Int xAxis;
     Vector3Int yAxis;
@@ -34,7 +35,7 @@ public class Chunk : MonoBehaviour
         frame = frame % sphereGenerator.resizeCheckFrameInterval;
         if ((ID+frame) % sphereGenerator.resizeCheckFrameInterval == 0)
         {
-            int aLODLevel = sphereGenerator.getLODLevel(transform.position + center, normal, LODLevel);
+            int aLODLevel = sphereGenerator.getLODLevel(transform.position + (Vector3)center, normal, LODLevel);
             if (aLODLevel > LODLevel && (transform.childCount == 0 && LODLevel != sphereGenerator.LODLevels - 2 || !fullChunks[0] && LODLevel == sphereGenerator.LODLevels - 2))
             {
                 Destroy(transform.GetComponent<MeshRenderer>());
@@ -54,12 +55,12 @@ public class Chunk : MonoBehaviour
                             float nChunkScale = 1 / Mathf.Pow(2, LODLevel + 1);
                             //print(((float)sphereGenerator.chunkRes / (float)sphereGenerator.fullScaleRes));
                             chunk.chunkScale = nChunkScale * ((float)sphereGenerator.chunkRes / (float)sphereGenerator.chunkRes);
-                            chunk.chunkOffset = chunkOffset + new Vector2(x, y) * nChunkScale;
+                            chunk.chunkOffset = chunkOffset + new VectorD2(x, y) * nChunkScale;
                             gO.transform.position = Vector3Int.FloorToInt(transform.root.position * ScaleManager.instance.celestialScaleFactor);
                             gO.transform.localScale *= ScaleManager.instance.celestialScaleFactor;
                             fullChunks[x * 2 + y] = gO;
                             chunk.make(true);
-                            gO.transform.position += chunk.offset * ScaleManager.instance.celestialScaleFactor;
+                            gO.transform.position = (Vector3)((VectorD3)gO.transform.position + chunk.offset * ScaleManager.instance.celestialScaleFactor);
                             gO.AddComponent<MeshCollider>().sharedMesh = gO.GetComponent<MeshFilter>().mesh;
 
                             GameObject scaleChunks;
@@ -92,7 +93,7 @@ public class Chunk : MonoBehaviour
                             chunk.LODLevel = LODLevel + 1;
                             float nChunkScale = 1 / Mathf.Pow(2, LODLevel + 1);
                             chunk.chunkScale = nChunkScale;
-                            chunk.chunkOffset = chunkOffset + new Vector2(x, y) * nChunkScale;
+                            chunk.chunkOffset = chunkOffset + new VectorD2(x, y) * nChunkScale;
                             gO.transform.position = transform.position;
                             gO.layer = 6;
                             chunk.make();
@@ -147,7 +148,7 @@ public class Chunk : MonoBehaviour
 
         int i = 0;
 
-        Vector3[] verts = new Vector3[numVerts];
+        VectorD3[] verts = new VectorD3[numVerts];
         Vector2[] uvs = new Vector2[numVerts];
         Vector2[] uv2 = new Vector2[numVerts];
         int[] tris = new int[numTris];
@@ -159,9 +160,9 @@ public class Chunk : MonoBehaviour
                 float alt = 0.5f;
                 float temp = 0.5f;
                 float humidity = 0.5f;
-                Vector3 pos = (mapCube(chunkOffset.x*(chunkRes-1) + (float)x * chunkScale, chunkOffset.y*(chunkRes-1) + (float)y * chunkScale).normalized / 2 * sphereGenerator.diameter);
+                VectorD3 pos = (mapCube((double)(chunkOffset.x*(chunkRes-1)) + (double)x * chunkScale, (double)(chunkOffset.y*(chunkRes-1)) + (double)y * chunkScale).normalized() / 2 * sphereGenerator.diameter);
 
-                Vector3 samplePos = pos + sphereGenerator.noiseOffset;
+                Vector3 samplePos = (Vector3)(pos + (VectorD3)sphereGenerator.noiseOffset);
                 samplePos += new Vector3(perlin3D(samplePos + new Vector3(1000, 200, 50) * .45f)/500, perlin3D(samplePos + new Vector3(-1000, 200, 50) * .45f)/500, perlin3D(samplePos + new Vector3(1000, -200, 50) * .45f)/500) + new Vector3(perlin3D(samplePos + new Vector3(1000, 200, 50) * 400f)/1000, perlin3D(samplePos + new Vector3(-100, 200, 50) * 400f)/1000, perlin3D(samplePos + new Vector3(1000, -2000, 50) * 400f)/1000);
                 float height = 0;
                 height += perlin3D(samplePos * .05f) / 100f;
@@ -202,7 +203,7 @@ public class Chunk : MonoBehaviour
                     //height += perlin3D(pos * 1000) / 200000;
                     //height += perlin3D(pos * 2000) / 400000;
                 }
-                pos = sphereGenerator.transform.rotation * (pos * (1 + height));
+                pos = (VectorD3)(sphereGenerator.transform.rotation * (pos * (1 + height)));
                 if (recenter && x == 0 && y == 0)
                 {
                     offset = pos;
@@ -235,7 +236,15 @@ public class Chunk : MonoBehaviour
         }
 
         Mesh mesh = new Mesh();
-        mesh.vertices = verts;
+
+        Vector3[] vector3Array = new Vector3[verts.Length];
+
+        for (int g = 0; g < verts.Length; g++)
+        {
+            vector3Array[g] = new Vector3((float)verts[g].x, (float)verts[g].y, (float)verts[g].z);
+        }
+
+        mesh.vertices = vector3Array;
         mesh.triangles = tris;
         mesh.uv = uvs;
         mesh.uv2 = uv2;
@@ -246,7 +255,7 @@ public class Chunk : MonoBehaviour
 
         center = mesh.bounds.center;
 
-        normal = Quaternion.Inverse(sphereGenerator.transform.rotation) * (center + offset).normalized;
+        normal = Quaternion.Inverse(sphereGenerator.transform.rotation) * (center + (Vector3)offset).normalized;
     }
 
     public void destroyChunks()
@@ -271,26 +280,26 @@ public class Chunk : MonoBehaviour
         }
     }
 
-    Vector3 mapCube(float x, float y) {
-        float hr = (float)chunkRes / 2;
-        float xp = Mathf.Abs((float)x - hr);
-        float yp = Mathf.Abs((float)y - hr);
-        float xs = mapSide(x);
-        float ys = mapSide(y);
-        return (Vector3)xAxis * adjustVerts(xs*2)/2 + (Vector3)yAxis * adjustVerts(ys*2)/2 + (Vector3)dir / 2;
+    VectorD3 mapCube(double x, double y) {
+        double hr = (double)chunkRes / 2d;
+        double xp = Math.Abs((double)x - hr);
+        double yp = Math.Abs((double)y - hr);
+        double xs = mapSide(x);
+        double ys = mapSide(y);
+        return (VectorD3)xAxis * adjustVerts(xs*2)/2d + (VectorD3)yAxis * adjustVerts(ys*2)/2d + (VectorD3)dir / 2d;
     }
 
-    float adjustVerts(float x)
+    double adjustVerts(double x)
     {
-        return sideMapFunc(Mathf.Abs(x))*Mathf.Sign(x);
+        return sideMapFunc(Math.Abs(x))*Math.Sign(x);
     }
 
-    float sideMapFunc(float x)
+    double sideMapFunc(double x)
     {
-        return Mathf.Pow(2/(2-x)-1, .8f);
+        return Math.Pow(2/(2-x)-1, .8f);
     }
 
-    float mapSide(float x)
+    double mapSide(double x)
     {
         return (x / (float)(chunkRes - 1) - .5f);
     }

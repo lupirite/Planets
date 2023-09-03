@@ -44,7 +44,7 @@ public class FullChunk : MonoBehaviour
         frame = frame % sphereGenerator.resizeCheckFrameInterval;
         if ((ID + frame) % sphereGenerator.resizeCheckFrameInterval == 0)
         {
-            float dist = Vector3.Distance(transform.position+GetComponent<Chunk>().center, sphereGenerator.viewer.transform.position);
+            float dist = Vector3.Distance(transform.position+(Vector3)GetComponent<Chunk>().center, sphereGenerator.viewer.transform.position);
             if (dist < sphereGenerator.renderDistance)
             {
                 if (!marchingChunk)
