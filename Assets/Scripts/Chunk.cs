@@ -284,7 +284,7 @@ public class Chunk : MonoBehaviour
         h += simplex3D(pos * .1d) / 100d;
         h += simplex3D(pos * 50d) / 10000d;
 
-        h -= .001f;
+        h -= .001d;
         if (h < 0)
         {
             h = 0;
