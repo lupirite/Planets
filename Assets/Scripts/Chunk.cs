@@ -138,10 +138,6 @@ public class Chunk : MonoBehaviour
     }
     */
     
-    static double simplex3D(VectorD3 pos)
-    {
-        return DoubleNoise.doubleNoise.Evaluate(pos.x, pos.y, pos.z);
-    }
     void generate(bool recenter = false)
     {
         if (GetComponent<MeshRenderer>())
@@ -168,11 +164,11 @@ public class Chunk : MonoBehaviour
                 VectorD3 pos = (mapCube((double)(chunkOffset.x*(chunkRes-1)) + (double)x * chunkScale, (double)(chunkOffset.y*(chunkRes-1)) + (double)y * chunkScale, chunkRes, xAxis, yAxis, dir).normalized() / 2 * sphereGenerator.diameter);
 
                 VectorD3 samplePos = (pos + (VectorD3)sphereGenerator.noiseOffset)/4;
-                samplePos += new VectorD3(simplex3D(samplePos + new VectorD3(1000, 200, 50) * .45d)/500, simplex3D(samplePos + new VectorD3(-1000, 200, 50) * .45d)/500, simplex3D(samplePos + new VectorD3(1000, -200, 50) * .45d)/500) + new VectorD3(simplex3D(samplePos + new VectorD3(1000, 200, 50) * 400d)/1000, simplex3D(samplePos + new VectorD3(-100, 200, 50) * 400d)/1000, simplex3D(samplePos + new VectorD3(1000, -2000, 50) * 400d)/1000);
+                samplePos += new VectorD3(SphereGenerator.simplex3D(samplePos + new VectorD3(1000, 200, 50) * .45d)/500, SphereGenerator.simplex3D(samplePos + new VectorD3(-1000, 200, 50) * .45d)/500, SphereGenerator.simplex3D(samplePos + new VectorD3(1000, -200, 50) * .45d)/500) + new VectorD3(SphereGenerator.simplex3D(samplePos + new VectorD3(1000, 200, 50) * 400d)/1000, SphereGenerator.simplex3D(samplePos + new VectorD3(-100, 200, 50) * 400d)/1000, SphereGenerator.simplex3D(samplePos + new VectorD3(1000, -2000, 50) * 400d)/1000);
                 
-                double height = getHeight(samplePos);
-                humidity = getHumidity(samplePos);
-                temp = Math.Pow(1 - (Math.Abs(pos.normalized().Dot((VectorD3)sphereGenerator.transform.up)) + .01d) * .9d, 1.5d)+simplex3D(pos*.1)/10;
+                double height = SphereGenerator.getHeight(samplePos);
+                humidity = SphereGenerator.getHumidity(samplePos);
+                temp = Math.Pow(1 - (Math.Abs(pos.normalized().Dot((VectorD3)sphereGenerator.transform.up)) + .01d) * .9d, 1.5d)+SphereGenerator.simplex3D(pos*.1)/10;
                 alt = (height - sphereGenerator.minAlt) / (sphereGenerator.maxAlt - sphereGenerator.minAlt);
 
                 pos = (VectorD3)(sphereGenerator.transform.rotation * (pos * (1 + height)));
@@ -268,35 +264,11 @@ public class Chunk : MonoBehaviour
 
     public static double sideMapFunc(double x)
     {
-        return Math.Pow(2/(2-x)-1, .8f);
+        return 2/(2-x)-1;
     }
 
     public static double mapSide(double x, int chunkRes)
     {
         return (x / (float)(chunkRes - 1) - .5f);
-    }
-
-    public static double getHeight(VectorD3 pos)
-    {
-        double h = 0;
-        // distant
-        h += simplex3D(pos * .02d) / 50d;
-        h += simplex3D(pos * .1d) / 100d;
-        h += simplex3D(pos * 50d) / 10000d;
-
-        h -= .001d;
-        if (h < 0)
-        {
-            h = 0;
-        }
-
-        // surface
-        h += simplex3D(pos * 500d) / 500000d;
-        return h;
-    }
-
-    public static double getHumidity(VectorD3 pos)
-    {
-        return simplex3D(pos * 1000d) * .5d + simplex3D(pos * 10000d)*.1d;
     }
 }

@@ -51,7 +51,8 @@ public class SphereGenerator : MonoBehaviour
         if (angle > 170) { }
         else
         {
-            float dist = (viewer.position - transform.position).magnitude;
+            Vector3 dir = viewer.position - transform.position;
+            float dist = dir.magnitude - estimateHeight(dir.normalized * diameter / 2) + diameter * .0002f;
             float h = 1-1/(dist/(diameter/2));
             float surfaceAngle = Mathf.Acos((2-Mathf.Pow(h*2, 2))/2)*Mathf.Rad2Deg/2;
 
@@ -133,6 +134,43 @@ public class SphereGenerator : MonoBehaviour
         {
             DestroyImmediate(transform.GetChild(0).gameObject);
         }
+    }
+
+    public static double getHeight(VectorD3 pos)
+    {
+        double h = 0;
+        // distant
+        h += simplex3D(pos * .02d) / 500d;
+        h += simplex3D(pos * .1d) / 1000d;
+        h += simplex3D(pos * 50d) / 100000d;
+
+        h -= .001d;
+        if (h < 0)
+        {
+            h = 0;
+        }
+
+        // surface
+        h += simplex3D(pos * 500d) / 500000d;
+        return h;
+    }
+    
+    public static float estimateHeight(Vector3 pos)
+    {
+        float h = 0;
+        h += (float)simplex3D((VectorD3)pos * .02f) / 500f;
+        h += (float)simplex3D((VectorD3)pos * .1f) / 1000f;
+        return h;
+    }
+
+    public static double getHumidity(VectorD3 pos)
+    {
+        return simplex3D(pos * 1000d) * .5d + simplex3D(pos * 10000d) * .1d;
+    }
+
+    public static double simplex3D(VectorD3 pos)
+    {
+        return DoubleNoise.doubleNoise.Evaluate(pos.x, pos.y, pos.z);
     }
 }
 
