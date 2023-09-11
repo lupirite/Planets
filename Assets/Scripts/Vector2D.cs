@@ -106,5 +106,15 @@ public struct VectorD2
         return new VectorD2(a.x * b, a.y * b);
     }
 
+    public static explicit operator Vector2(VectorD2 dv)
+    {
+        return new Vector2((float)dv.x, (float)dv.y);
+    }
+
+    public static explicit operator VectorD2(Vector2 v)
+    {
+        return new VectorD2((double)v.x, (double)v.y);
+    }
+
     public static readonly VectorD2 zero = new VectorD2(0, 0);
 }

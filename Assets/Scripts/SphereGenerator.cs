@@ -36,6 +36,8 @@ public class SphereGenerator : MonoBehaviour
     [Header("MarchingChunks")]
     public float renderDistance;
 
+    [HideInInspector] public VectorD3 doublePos;
+
     public int getLODLevel(Vector3 chunkPos, Vector3 normal, float LOD)
     {
         float scaledDist = Vector3.Distance(chunkPos, viewer.position)*(ScaleManager.instance.celestialScaleFactor/100000);
@@ -69,6 +71,8 @@ public class SphereGenerator : MonoBehaviour
     public static List<Transform> sphereGenerators;
     private void Start()
     {
+        doublePos = (VectorD3)transform.position;
+
         if (sphereGenerators == null)
             sphereGenerators = new List<Transform>();
         sphereGenerators.Add(transform);
@@ -117,6 +121,12 @@ public class SphereGenerator : MonoBehaviour
                 i++;
                 gO.transform.parent = transform;
                 gO.AddComponent<Chunk>();
+                gO.GetComponent<Chunk>().rootChunk = gO.transform;
+                BinaryInt xc = new BinaryInt();
+                xc = xc.Concat(true);
+                gO.GetComponent<Chunk>().xCoord = xc;
+                gO.GetComponent<Chunk>().yCoord = xc;
+                gO.GetComponent<Chunk>().parentChunk = gameObject;
                 gO.GetComponent<Chunk>().dir = dir;
                 gO.GetComponent<Chunk>().sphereGenerator = this;
                 gO.GetComponent<Chunk>().make();

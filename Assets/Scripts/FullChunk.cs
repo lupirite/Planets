@@ -21,7 +21,7 @@ public class FullChunk : MonoBehaviour
             Vector3 up = GetComponent<Chunk>().sphereGenerator.transform.rotation*GetComponent<Chunk>().normal;
             Vector3 right = Vector3.Cross(up, transform.up);
             Vector3 forwards = -Vector3.Cross(up, right);
-            Vector3 randomSpawnPos = transform.position + Random.Range(0, treeSpread)*right + Random.Range(0, treeSpread) * forwards + up * 20;
+            Vector3 randomSpawnPos = transform.position + -Random.Range(0, treeSpread)*right + Random.Range(0, treeSpread) * forwards + up * 20;
 
             RaycastHit hit;
             if (Physics.Raycast(randomSpawnPos, -up, out hit, 50, groundMask))

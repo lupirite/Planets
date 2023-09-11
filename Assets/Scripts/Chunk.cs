@@ -15,13 +15,20 @@ public class Chunk : MonoBehaviour
 
     public Vector3 normal;
 
+    public Chunk[] adjacentChunks = new Chunk[4];
+
     [HideInInspector] public VectorD3 offset;
 
     Vector3Int xAxis;
     Vector3Int yAxis;
 
     GameObject[] fullChunks = new GameObject[4];
+    public GameObject parentChunk;
 
+    public BinaryInt xCoord;
+    public BinaryInt yCoord;
+
+    [HideInInspector] public Transform rootChunk;
     [HideInInspector]public int ID;
     private void Start()
     {
@@ -47,8 +54,14 @@ public class Chunk : MonoBehaviour
                     {
                         if (LODLevel == sphereGenerator.LODLevels - 2)
                         {
-                            GameObject gO = new GameObject("UnscaledChunk(" + x.ToString() + ", " + y.ToString() + ")");
+                            BinaryInt xc = xCoord.Concat(x == 1);
+                            BinaryInt yc = yCoord.Concat(x == 1);
+                            GameObject gO = new GameObject("UnscaledChunk(" + ((int)xc).ToString() + ", " + ((int)yc).ToString() + ")");
                             Chunk chunk = gO.AddComponent<Chunk>();
+                            chunk.rootChunk = rootChunk;
+                            chunk.xCoord = xc;
+                            chunk.yCoord = yc;
+                            chunk.parentChunk = gameObject;
                             chunk.dir = dir;
                             chunk.sphereGenerator = sphereGenerator;
                             chunk.LODLevel = LODLevel + 1;
@@ -56,8 +69,8 @@ public class Chunk : MonoBehaviour
                             //print(((float)sphereGenerator.chunkRes / (float)sphereGenerator.fullScaleRes));
                             chunk.chunkScale = nChunkScale * ((float)sphereGenerator.chunkRes / (float)sphereGenerator.chunkRes);
                             chunk.chunkOffset = chunkOffset + new VectorD2(x, y) * nChunkScale;
-                            gO.transform.position = Vector3Int.FloorToInt(transform.root.position * ScaleManager.instance.celestialScaleFactor);
-                            gO.transform.localScale *= ScaleManager.instance.celestialScaleFactor;
+                            gO.transform.position = (Vector3)(sphereGenerator.doublePos * (double)ScaleManager.instance.celestialScaleFactor);
+                            //gO.transform.localScale *= ScaleManager.instance.celestialScaleFactor;
                             fullChunks[x * 2 + y] = gO;
                             chunk.make(true);
                             gO.transform.position = (Vector3)((VectorD3)gO.transform.position + chunk.offset * ScaleManager.instance.celestialScaleFactor);
@@ -85,9 +98,15 @@ public class Chunk : MonoBehaviour
                         }
                         else
                         {
-                            GameObject gO = new GameObject("Chunk(" + x.ToString() + ", " + y.ToString() + ")");
+                            BinaryInt xc = xCoord.Concat(x == 1);
+                            BinaryInt yc = yCoord.Concat(x == 1);
+                            GameObject gO = new GameObject("Chunk(" + ((int)xc).ToString() + ", " + ((int)yc).ToString() + ")");
                             gO.transform.parent = transform;
                             Chunk chunk = gO.AddComponent<Chunk>();
+                            chunk.rootChunk = rootChunk;
+                            chunk.xCoord = xc;
+                            chunk.yCoord = yc;
+                            chunk.parentChunk = gameObject;
                             chunk.dir = dir;
                             chunk.sphereGenerator = sphereGenerator;
                             chunk.LODLevel = LODLevel + 1;
@@ -100,6 +119,10 @@ public class Chunk : MonoBehaviour
                         }
 
                     }
+                }
+                for (int i = 0; i < transform.childCount; i++)
+                {
+                    transform.GetChild(i).GetComponent<Chunk>().getAdjacentChunks();
                 }
             }
             else if (aLODLevel <= LODLevel && (transform.childCount > 0 || fullChunks[0]))
@@ -137,6 +160,19 @@ public class Chunk : MonoBehaviour
         return (DoubleNoise.PerlinNoise(pos.x+830d, pos.y-800d) + DoubleNoise.PerlinNoise(pos.x+395d, pos.z+2354d) + DoubleNoise.PerlinNoise(pos.y-2345d, pos.z-5778d)) / 3;
     }
     */
+
+    void getAdjacentChunks()
+    {
+        Vector2Int pos = new Vector2Int((int)xCoord, (int)yCoord);
+        
+        for (int x = 0; x < 2; x++)
+        {
+            for (int y = 0; y < 2; y++)
+            {
+                
+            }
+        }
+    }
     
     void generate(bool recenter = false)
     {
@@ -178,6 +214,10 @@ public class Chunk : MonoBehaviour
                 }
 
                 verts[i] = pos - offset;
+                if (recenter)
+                {
+                    verts[i] = verts[i] * (double)ScaleManager.instance.celestialScaleFactor;
+                }
 
                 uvs[i] = new Vector2((float)alt, (float)temp);
                 uv2[i] = new Vector2((float)humidity, 0);

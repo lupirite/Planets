@@ -39,6 +39,10 @@ public class ScaleManager : MonoBehaviour
             }
             else if ((celestialMask & (1 << g.layer)) != 0)
             {
+                if (g.GetComponent<SphereGenerator>())
+                {
+                    g.GetComponent<SphereGenerator>().doublePos -= (VectorD3)offset / (double)celestialScaleFactor;
+                }
                 g.transform.position -= offset/celestialScaleFactor;
             }
         }
