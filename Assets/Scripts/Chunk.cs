@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 using System;
+using System.Xml.XPath;
 
 public class Chunk : MonoBehaviour
 {
@@ -55,8 +56,8 @@ public class Chunk : MonoBehaviour
                         if (LODLevel == sphereGenerator.LODLevels - 2)
                         {
                             BinaryInt xc = xCoord.Concat(x == 1);
-                            BinaryInt yc = yCoord.Concat(x == 1);
-                            GameObject gO = new GameObject("UnscaledChunk(" + ((int)xc).ToString() + ", " + ((int)yc).ToString() + ")");
+                            BinaryInt yc = yCoord.Concat(y == 1);
+                            GameObject gO = new GameObject("UnscaledChunk(" + (xc).ToString() + ", " + (yc).ToString() + ")");
                             Chunk chunk = gO.AddComponent<Chunk>();
                             chunk.rootChunk = rootChunk;
                             chunk.xCoord = xc;
@@ -99,8 +100,8 @@ public class Chunk : MonoBehaviour
                         else
                         {
                             BinaryInt xc = xCoord.Concat(x == 1);
-                            BinaryInt yc = yCoord.Concat(x == 1);
-                            GameObject gO = new GameObject("Chunk(" + ((int)xc).ToString() + ", " + ((int)yc).ToString() + ")");
+                            BinaryInt yc = yCoord.Concat(y == 1);
+                            GameObject gO = new GameObject("Chunk(" + (xc).ToString() + ", " + (yc).ToString() + ")");
                             gO.transform.parent = transform;
                             Chunk chunk = gO.AddComponent<Chunk>();
                             chunk.rootChunk = rootChunk;
@@ -163,15 +164,38 @@ public class Chunk : MonoBehaviour
 
     void getAdjacentChunks()
     {
-        Vector2Int pos = new Vector2Int((int)xCoord, (int)yCoord);
-        
         for (int x = 0; x < 2; x++)
         {
             for (int y = 0; y < 2; y++)
             {
+                BinaryInt xPos = xCoord + BinaryInt.one * (x*2 - 1);
+                BinaryInt yPos = yCoord + BinaryInt.one * (y*2 - 1);
                 
+                adjacentChunks[x+y*2] = getChunkAtPos(xPos, yPos);
             }
         }
+    }
+
+    Chunk getChunkAtPos(BinaryInt x, BinaryInt y)
+    {
+        BinaryInt xp = x.Reverse().rConcat(false);
+        BinaryInt yp = y.Reverse().rConcat(false);
+        Transform curChunk = rootChunk;
+        int i = 0;
+        while (true)
+        {
+            if (curChunk.childCount == 0)
+            {
+                break;
+            }
+            int ind = 0;
+            if (yp.bits[i]) ind += 2;
+            if (xp.bits[i]) ind += 1;
+
+            curChunk = curChunk.GetChild(ind);
+            i++;
+        }
+        return curChunk.GetComponent<Chunk>();
     }
     
     void generate(bool recenter = false)

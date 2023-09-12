@@ -122,10 +122,8 @@ public class SphereGenerator : MonoBehaviour
                 gO.transform.parent = transform;
                 gO.AddComponent<Chunk>();
                 gO.GetComponent<Chunk>().rootChunk = gO.transform;
-                BinaryInt xc = new BinaryInt();
-                xc = xc.Concat(true);
-                gO.GetComponent<Chunk>().xCoord = xc;
-                gO.GetComponent<Chunk>().yCoord = xc;
+                gO.GetComponent<Chunk>().xCoord = BinaryInt.one;
+                gO.GetComponent<Chunk>().yCoord = BinaryInt.one;
                 gO.GetComponent<Chunk>().parentChunk = gameObject;
                 gO.GetComponent<Chunk>().dir = dir;
                 gO.GetComponent<Chunk>().sphereGenerator = this;
