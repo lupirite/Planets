@@ -29,6 +29,8 @@ public class Chunk : MonoBehaviour
     public BinaryInt xCoord;
     public BinaryInt yCoord;
 
+    public string[] adjPoss = new string[4];
+
     [HideInInspector] public Transform rootChunk;
     [HideInInspector]public int ID;
     private void Start()
@@ -121,9 +123,14 @@ public class Chunk : MonoBehaviour
 
                     }
                 }
-                for (int i = 0; i < transform.childCount; i++)
+                checkNeighbors();
+                foreach (Chunk chunk in adjacentChunks)
                 {
-                    transform.GetChild(i).GetComponent<Chunk>().getAdjacentChunks();
+                    if (!chunk)
+                    {
+                        continue;
+                    }
+                    chunk.checkNeighbors();
                 }
             }
             else if (aLODLevel <= LODLevel && (transform.childCount > 0 || fullChunks[0]))
@@ -131,6 +138,15 @@ public class Chunk : MonoBehaviour
                 destroyChunks();
                 generate();
             }
+        }
+    }
+
+    public void checkNeighbors()
+    {
+        getAdjacentChunks();
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            transform.GetChild(i).GetComponent<Chunk>().checkNeighbors();
         }
     }
 
@@ -164,33 +180,37 @@ public class Chunk : MonoBehaviour
 
     void getAdjacentChunks()
     {
-        for (int x = 0; x < 2; x++)
+        Vector2Int[] dirs = { new Vector2Int(1, 0), new Vector2Int(-1, 0), new Vector2Int(0, 1), new Vector2Int(0, -1) };
+        for (int i = 0; i < 4; i++)
         {
-            for (int y = 0; y < 2; y++)
+            int x = dirs[i].x; int y = dirs[i].y;
+            BinaryInt xPos = xCoord + BinaryInt.one * x;
+            BinaryInt yPos = yCoord + BinaryInt.one * y;
+
+            adjPoss[i] = xPos.ToString()+", "+yPos.ToString();
+            if (xPos.ToString().Length != xCoord.ToString().Length || yPos.ToString().Length != yCoord.ToString().Length)
             {
-                BinaryInt xPos = xCoord + BinaryInt.one * (x*2 - 1);
-                BinaryInt yPos = yCoord + BinaryInt.one * (y*2 - 1);
-                
-                adjacentChunks[x+y*2] = getChunkAtPos(xPos, yPos);
+                return;
             }
+            adjacentChunks[i] = getChunkAtPos(xPos, yPos);
         }
     }
 
     Chunk getChunkAtPos(BinaryInt x, BinaryInt y)
     {
-        BinaryInt xp = x.Reverse().rConcat(false);
-        BinaryInt yp = y.Reverse().rConcat(false);
         Transform curChunk = rootChunk;
         int i = 0;
         while (true)
         {
-            if (curChunk.childCount == 0)
+            bool[] xVals = x.getVals();
+            bool[] yVals = y.getVals();
+            if (curChunk.childCount == 0 || i == xVals.Length)
             {
                 break;
             }
             int ind = 0;
-            if (yp.bits[i]) ind += 2;
-            if (xp.bits[i]) ind += 1;
+            if (xVals[i]) ind += 2;
+            if (yVals[i]) ind += 1;
 
             curChunk = curChunk.GetChild(ind);
             i++;

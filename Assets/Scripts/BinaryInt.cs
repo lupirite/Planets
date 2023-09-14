@@ -53,13 +53,17 @@ public struct BinaryInt
 
     public static BinaryInt operator *(BinaryInt a, int x)
     {
-        if (x != 1 && x != -1)
+        if (x != 1 && x != -1 && x != 0)
         {
-            Debug.LogError("Type BinaryInt can only be multiplied by values -1 and 1");
+            Debug.LogError("Type BinaryInt can only be multiplied by values -1, 0 and 1");
         }
         if (x == -1)
         {
             return a.Inverse() + BinaryInt.one;
+        }
+        else if (x == 0)
+        {
+            return BinaryInt.zero;
         }
         return a;
     }
@@ -76,6 +80,22 @@ public struct BinaryInt
         string result = "";
         for (int i = 0; i < b.bits.Length; i++) if (b.bits[i]) result += "1"; else result += "0";
         return result;
+    }
+
+    public bool[] getVals()
+    {
+        List<bool> result = new List<bool>();
+        bool end = false;
+        for (int i = this.bits.Length - 1; i >= 0; i--)
+        {
+            if (end)
+            {
+                if (this.bits[i]) result.Add(true);
+                else result.Add(false);
+            }
+            if (this.bits[i]) end = true;
+        }
+        return result.ToArray();
     }
 
     public override string ToString()
@@ -128,32 +148,6 @@ public struct BinaryInt
         }
 
         return new BinaryInt(nArr);
-    }
-
-    public BinaryInt Reverse()
-    {
-        if ((int)this == 0)
-        {
-            return this;
-        }
-        BinaryInt result = BinaryInt.zero;
-        bool end = false;
-        for (int i = this.bits.Length - 1; i >= 0; i--)
-        {
-            if (this.bits[i]) end = true;
-            if (end)
-            {
-                if (this.bits[i]) result.rConcat(true);
-                else result += result.rConcat(false);
-            }
-        }
-        
-        while (result.bits[0] != false)
-        {
-            result.rConcat(false);
-        }
-
-        return result;
     }
 
     public static readonly BinaryInt zero = new BinaryInt(new bool[32]);

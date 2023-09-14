@@ -16,7 +16,6 @@ public class SphereGenerator : MonoBehaviour
     [Header("Generation")]
     public int chunkRes;
     public Material material;
-    public AnimationCurve edgeDetailFalloff;
     public float diameter = 10;
     public Vector3 noiseOffset;
     public float minAlt;
