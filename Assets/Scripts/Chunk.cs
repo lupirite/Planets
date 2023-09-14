@@ -33,9 +33,41 @@ public class Chunk : MonoBehaviour
 
     [HideInInspector] public Transform rootChunk;
     [HideInInspector]public int ID;
+
+    private Vector3[] originalVerts;
     private void Start()
     {
         ID = (int)(chunkOffset.x*100) + (int)(chunkOffset.y*100);
+    }
+
+    int snapTo(int i, int interval)
+    {
+        return ((int)Math.Round(i / (float)interval)) * interval;
+    }
+
+    float nfmod(float a, float b)
+    {
+        return a - b * Mathf.Floor(a / b);
+    }
+
+    private void removeSeam(int side, int LODDif)
+    {
+        Vector2Int[] dirs = { new Vector2Int(1, 0), new Vector2Int(-1, 0), new Vector2Int(0, 1), new Vector2Int(0, -1) };
+        Vector2Int dir = dirs[side];
+
+        Mesh mesh = GetComponent<MeshFilter>().mesh;
+        Vector3[] verts = mesh.vertices;
+        int res = chunkRes;
+        for (int i = 0; i < res; i++)
+        {
+            Vector2Int vertPos = new Vector2Int(Mathf.Abs(dir.y)*i+(int)nfmod(-Mathf.Max(dir.x, 0), res), (Mathf.Abs(dir.x)*i+(int)nfmod(-Mathf.Max(dir.y, 0), res)));
+            Vector2Int snapVertPos = new Vector2Int(Mathf.Abs(dir.y) * snapTo(i, (int)Mathf.Pow(2, LODDif)) + (int)nfmod(-Mathf.Max(dir.x, 0), res), Mathf.Abs(dir.x) * snapTo(i, (int)Mathf.Pow(2, LODDif)) + (int)nfmod(-Mathf.Max(dir.y, 0), res));
+            print((int)Mathf.Ceil(3.0f));
+            verts[vertPos.x * res + vertPos.y] = originalVerts[snapVertPos.x * res + snapVertPos.y];
+        }
+        mesh.vertices = verts;
+        mesh.RecalculateNormals();
+        GetComponent<MeshFilter>().mesh = mesh;
     }
 
     int frame = 0;
@@ -43,6 +75,22 @@ public class Chunk : MonoBehaviour
     {
         frame++;
         frame = frame % sphereGenerator.resizeCheckFrameInterval;
+        if (transform.childCount == 0 && !fullChunks[0] && (ID+frame-3) % sphereGenerator.resizeCheckFrameInterval == 0)
+        {
+            getAdjacentChunks();
+            for (int i = 0; i < 4; i++)
+            {
+                if (adjacentChunks[i] == null)
+                {
+                    continue;
+                }
+                if (adjacentChunks[i].LODLevel <= LODLevel - 1)
+                {
+                    //print("removeSeam");
+                    removeSeam(i, LODLevel-adjacentChunks[i].LODLevel);
+                }
+            }
+        }
         if ((ID+frame) % sphereGenerator.resizeCheckFrameInterval == 0)
         {
             int aLODLevel = sphereGenerator.getLODLevel(transform.position + (Vector3)center, normal, LODLevel);
@@ -123,30 +171,12 @@ public class Chunk : MonoBehaviour
 
                     }
                 }
-                checkNeighbors();
-                foreach (Chunk chunk in adjacentChunks)
-                {
-                    if (!chunk)
-                    {
-                        continue;
-                    }
-                    chunk.checkNeighbors();
-                }
             }
             else if (aLODLevel <= LODLevel && (transform.childCount > 0 || fullChunks[0]))
             {
                 destroyChunks();
                 generate();
             }
-        }
-    }
-
-    public void checkNeighbors()
-    {
-        getAdjacentChunks();
-        for (int i = 0; i < transform.childCount; i++)
-        {
-            transform.GetChild(i).GetComponent<Chunk>().checkNeighbors();
         }
     }
 
@@ -297,6 +327,7 @@ public class Chunk : MonoBehaviour
         }
 
         mesh.vertices = vector3Array;
+        originalVerts = mesh.vertices;
         mesh.triangles = tris;
         mesh.uv = uvs;
         mesh.uv2 = uv2;
