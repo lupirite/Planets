@@ -60,10 +60,28 @@ public class Chunk : MonoBehaviour
         int res = chunkRes;
         for (int i = 0; i < res; i++)
         {
+            bool[] xVals = xCoord.getVals();
+            bool[] yVals = yCoord.getVals();
+            int xOffset = 0;
+            int yOffset = 0;
+            for (int j = 0; j < xVals.Length-1; j++)
+            {
+                if (xVals[xVals.Length - 1 - j])
+                    xOffset += (int)Mathf.Pow(2, j) * (res-1);
+                if (yVals[yVals.Length - 1 - j])
+                    yOffset += (int)Mathf.Pow(2, j) * (res-1);
+            }
             Vector2Int vertPos = new Vector2Int(Mathf.Abs(dir.y)*i+(int)nfmod(-Mathf.Max(dir.x, 0), res), (Mathf.Abs(dir.x)*i+(int)nfmod(-Mathf.Max(dir.y, 0), res)));
-            Vector2Int snapVertPos = new Vector2Int(Mathf.Abs(dir.y) * snapTo(i, (int)Mathf.Pow(2, LODDif)) + (int)nfmod(-Mathf.Max(dir.x, 0), res), Mathf.Abs(dir.x) * snapTo(i, (int)Mathf.Pow(2, LODDif)) + (int)nfmod(-Mathf.Max(dir.y, 0), res));
-            print((int)Mathf.Ceil(3.0f));
-            verts[vertPos.x * res + vertPos.y] = originalVerts[snapVertPos.x * res + snapVertPos.y];
+            Vector2Int snapVertPos = new Vector2Int(Mathf.Abs(dir.y) * (snapTo(i+xOffset, (int)Mathf.Pow(2, LODDif))-xOffset) + (int)nfmod(-Mathf.Max(dir.x, 0), res), Mathf.Abs(dir.x) * (snapTo(i+yOffset, (int)Mathf.Pow(2, LODDif))-yOffset) + (int)nfmod(-Mathf.Max(dir.y, 0), res));
+            
+            if (snapVertPos.x >= res || snapVertPos.y >= res || snapVertPos.x < 0 || snapVertPos.y < 0)
+            {
+                verts[vertPos.x * res + vertPos.y] = (Vector3)getVertPos(snapVertPos.x, snapVertPos.y);
+            }
+            else
+            {
+                verts[vertPos.x * res + vertPos.y] = originalVerts[snapVertPos.x * res + snapVertPos.y];
+            }
         }
         mesh.vertices = verts;
         mesh.RecalculateNormals();
@@ -84,11 +102,7 @@ public class Chunk : MonoBehaviour
                 {
                     continue;
                 }
-                if (adjacentChunks[i].LODLevel <= LODLevel - 1)
-                {
-                    //print("removeSeam");
-                    removeSeam(i, LODLevel-adjacentChunks[i].LODLevel);
-                }
+                removeSeam(i, Mathf.Max(LODLevel - adjacentChunks[i].LODLevel, 0));
             }
         }
         if ((ID+frame) % sphereGenerator.resizeCheckFrameInterval == 0)
@@ -287,7 +301,7 @@ public class Chunk : MonoBehaviour
                     offset = pos;
                 }
 
-                verts[i] = pos - offset;
+                verts[i] = getVertPos(x, y);
                 if (recenter)
                 {
                     verts[i] = verts[i] * (double)ScaleManager.instance.celestialScaleFactor;
@@ -339,6 +353,20 @@ public class Chunk : MonoBehaviour
         center = mesh.bounds.center;
 
         normal = Quaternion.Inverse(sphereGenerator.transform.rotation) * (center + (Vector3)offset).normalized;
+    }
+
+    public VectorD3 getVertPos(int x, int y)
+    {
+        VectorD3 pos = (mapCube((double)(chunkOffset.x * (chunkRes - 1)) + (double)x * chunkScale, (double)(chunkOffset.y * (chunkRes - 1)) + (double)y * chunkScale, chunkRes, xAxis, yAxis, dir).normalized() / 2 * sphereGenerator.diameter);
+
+        VectorD3 samplePos = (pos + (VectorD3)sphereGenerator.noiseOffset) / 4;
+        samplePos += new VectorD3(SphereGenerator.simplex3D(samplePos + new VectorD3(1000, 200, 50) * .45d) / 500, SphereGenerator.simplex3D(samplePos + new VectorD3(-1000, 200, 50) * .45d) / 500, SphereGenerator.simplex3D(samplePos + new VectorD3(1000, -200, 50) * .45d) / 500) + new VectorD3(SphereGenerator.simplex3D(samplePos + new VectorD3(1000, 200, 50) * 400d) / 1000, SphereGenerator.simplex3D(samplePos + new VectorD3(-100, 200, 50) * 400d) / 1000, SphereGenerator.simplex3D(samplePos + new VectorD3(1000, -2000, 50) * 400d) / 1000);
+
+        double height = SphereGenerator.getHeight(samplePos);
+
+        pos = (VectorD3)(sphereGenerator.transform.rotation * (pos * (1 + height)));
+
+        return (pos - offset);
     }
 
     public void destroyChunks()
