@@ -147,15 +147,15 @@ public class SphereGenerator : MonoBehaviour
     {
         double h = 0;
         // distant
-        h += simplex3D(pos * .02d) / 500d;
-        h += simplex3D(pos * .1d) / 1000d;
-        h += simplex3D(pos * 50d) / 100000d;
+        //h += simplex3D(pos * .02d) / 500d;
+        //h += simplex3D(pos * .1d) / 1000d;
+        h += simplex3D(pos * 5d) / 1000d;
 
-        h -= .001d;
+        /*h -= .001d;
         if (h < 0)
         {
             h = 0;
-        }
+        }*/
 
         // surface
         h += simplex3D(pos * 500d) / 500000d;

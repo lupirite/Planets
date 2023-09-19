@@ -4,6 +4,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using System;
 using System.Xml.XPath;
+using UnityEditor.Animations;
 
 public class Chunk : MonoBehaviour
 {
@@ -16,7 +17,7 @@ public class Chunk : MonoBehaviour
 
     public Vector3 normal;
 
-    public Chunk[] adjacentChunks = new Chunk[4];
+    public Chunk[] adjacentChunks = new Chunk[4];// (1, 0), (-1, 0), (0, 1), (0, -1)
 
     [HideInInspector] public VectorD3 offset;
 
@@ -38,9 +39,35 @@ public class Chunk : MonoBehaviour
     private void Start()
     {
         ID = (int)(chunkOffset.x*100) + (int)(chunkOffset.y*100);
+
+        getAdjacentChunks();
+        foreach (var chunk in adjacentChunks)
+        {
+            if (chunk == null)
+            {
+                continue;
+            }
+            chunk.chRefresh();
+        }
+        refreshSeams();
     }
 
-    int snapTo(int i, int interval)
+    public void chRefresh()
+    {
+        if (transform.childCount == 0)
+        {
+            refreshSeams();
+        }
+        else
+        {
+            for (int i = 0; i < transform.childCount; i++)
+            {
+                transform.GetChild(i).GetComponent<Chunk>().chRefresh();
+            }
+        }
+    }
+
+    int snapTo(float i, int interval)
     {
         return ((int)Math.Round(i / (float)interval)) * interval;
     }
@@ -58,23 +85,24 @@ public class Chunk : MonoBehaviour
         Mesh mesh = GetComponent<MeshFilter>().mesh;
         Vector3[] verts = mesh.vertices;
         int res = chunkRes;
+
+        bool[] xVals = xCoord.getVals();
+        bool[] yVals = yCoord.getVals();
+        int xOffset = 0;
+        int yOffset = 0;
+        for (int j = 0; j < Mathf.Min(xVals.Length - 1, 3); j++)
+        {
+            if (xVals[xVals.Length - 1 - j])
+                xOffset += (int)Mathf.Pow(2, j) * (res - 1);
+            if (yVals[yVals.Length - 1 - j])
+                yOffset += (int)Mathf.Pow(2, j) * (res - 1);
+        }
         for (int i = 0; i < res; i++)
         {
-            bool[] xVals = xCoord.getVals();
-            bool[] yVals = yCoord.getVals();
-            int xOffset = 0;
-            int yOffset = 0;
-            for (int j = 0; j < xVals.Length-1; j++)
-            {
-                if (xVals[xVals.Length - 1 - j])
-                    xOffset += (int)Mathf.Pow(2, j) * (res-1);
-                if (yVals[yVals.Length - 1 - j])
-                    yOffset += (int)Mathf.Pow(2, j) * (res-1);
-            }
             Vector2Int vertPos = new Vector2Int(Mathf.Abs(dir.y)*i+(int)nfmod(-Mathf.Max(dir.x, 0), res), (Mathf.Abs(dir.x)*i+(int)nfmod(-Mathf.Max(dir.y, 0), res)));
-            Vector2Int snapVertPos = new Vector2Int(Mathf.Abs(dir.y) * (snapTo(i+xOffset, (int)Mathf.Pow(2, LODDif))-xOffset) + (int)nfmod(-Mathf.Max(dir.x, 0), res), Mathf.Abs(dir.x) * (snapTo(i+yOffset, (int)Mathf.Pow(2, LODDif))-yOffset) + (int)nfmod(-Mathf.Max(dir.y, 0), res));
+            Vector2Int snapVertPos = new Vector2Int(Mathf.Abs(dir.y) * (snapTo((float)i + .001f*dir.y + (float)xOffset, (int)Mathf.Pow(2, LODDif)) - xOffset) + (int)nfmod(-Mathf.Max(dir.x, 0), res), Mathf.Abs(dir.x) * (snapTo((float)i + .001f * dir.x + (float)yOffset, (int)Mathf.Pow(2, LODDif)) - yOffset) + (int)nfmod(-Mathf.Max(dir.y, 0), res));
             
-            if (snapVertPos.x >= res || snapVertPos.y >= res || snapVertPos.x < 0 || snapVertPos.y < 0)
+            if (snapVertPos.x >= res || snapVertPos.y >= res || snapVertPos.x < 0 || snapVertPos.y < 0) 
             {
                 verts[vertPos.x * res + vertPos.y] = (Vector3)getVertPos(snapVertPos.x, snapVertPos.y);
             }
@@ -88,23 +116,56 @@ public class Chunk : MonoBehaviour
         GetComponent<MeshFilter>().mesh = mesh;
     }
 
-    int frame = 0;
-    private void Update()
+    public void refreshSeams()
     {
-        frame++;
-        frame = frame % sphereGenerator.resizeCheckFrameInterval;
-        if (transform.childCount == 0 && !fullChunks[0] && (ID+frame-3) % sphereGenerator.resizeCheckFrameInterval == 0)
+        if (transform.childCount == 0 && !fullChunks[0] && rootChunk && LODLevel != sphereGenerator.LODLevels-1)
         {
             getAdjacentChunks();
+
+            List<int> indices = new List<int>();
             for (int i = 0; i < 4; i++)
             {
                 if (adjacentChunks[i] == null)
                 {
                     continue;
                 }
-                removeSeam(i, Mathf.Max(LODLevel - adjacentChunks[i].LODLevel, 0));
+                else
+                {
+                    if (indices.Count == 0)
+                    {
+                        indices.Add(i);
+                    }
+                    else
+                    {
+                        int ind = 0;
+                        for (int j = 0; j < indices.Count; j++)
+                        {
+                            if (adjacentChunks[indices[j]].LODLevel < adjacentChunks[i].LODLevel)
+                            {
+                                ind++;
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                        indices.Insert(ind, i);
+                    }
+                }
+            }
+
+            for (int i = 0; i < indices.Count; i++)
+            {
+                removeSeam(indices[i], Mathf.Max(LODLevel - adjacentChunks[indices[i]].LODLevel, 0));
             }
         }
+    }
+
+    int frame = 0;
+    private void Update()
+    {
+        frame++;
+        frame = frame % sphereGenerator.resizeCheckFrameInterval;
         if ((ID+frame) % sphereGenerator.resizeCheckFrameInterval == 0)
         {
             int aLODLevel = sphereGenerator.getLODLevel(transform.position + (Vector3)center, normal, LODLevel);
