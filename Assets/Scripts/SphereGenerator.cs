@@ -37,6 +37,7 @@ public class SphereGenerator : MonoBehaviour
 
     [HideInInspector] public VectorD3 doublePos;
 
+    float surfaceAngle = -99;
     public int getLODLevel(Vector3 chunkPos, Vector3 normal, float LOD)
     {
         float scaledDist = Vector3.Distance(chunkPos, viewer.position)*(ScaleManager.instance.celestialScaleFactor/100000);
@@ -52,10 +53,13 @@ public class SphereGenerator : MonoBehaviour
         if (angle > 170) { }
         else
         {
-            Vector3 dir = viewer.position - transform.position;
-            float dist = dir.magnitude - estimateHeight(dir.normalized * diameter / 2) + diameter * .0002f;
-            float h = 1-1/(dist/(diameter/2));
-            float surfaceAngle = Mathf.Acos((2-Mathf.Pow(h*2, 2))/2)*Mathf.Rad2Deg/2;
+            if (surfaceAngle == -99)
+            {
+                Vector3 dir = viewer.position - transform.position;
+                float dist = dir.magnitude - estimateHeight(dir.normalized * diameter / 2) + diameter * .0002f;
+                float h = 1 - 1 / (dist / (diameter / 2));
+                surfaceAngle = Mathf.Acos((2 - Mathf.Pow(h * 2, 2)) / 2) * Mathf.Rad2Deg / 2;
+            }
 
             if (surfaceAngle < angle) // surface angle is the angle that represents how much of the surface (assumed to be a sphere) is visible. Angle is the angle between the viewer, the center of the planet, and the chunk center
             {
@@ -77,6 +81,11 @@ public class SphereGenerator : MonoBehaviour
         sphereGenerators.Add(transform);
         destroyChunks();
         make();
+    }
+
+    private void Update()
+    {
+        surfaceAngle = -99;
     }
 
     public static Transform getNearest(Vector3 pos)

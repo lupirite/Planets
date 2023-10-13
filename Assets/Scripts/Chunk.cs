@@ -39,7 +39,7 @@ public class Chunk : MonoBehaviour
     private void Start()
     {
         ID = (int)(chunkOffset.x*100) + (int)(chunkOffset.y*100);
-
+        /* 
         getAdjacentChunks();
         foreach (var chunk in adjacentChunks)
         {
@@ -49,7 +49,7 @@ public class Chunk : MonoBehaviour
             }
             chunk.chRefresh();
         }
-        refreshSeams();
+        refreshSeams();*/
     }
 
     public void chRefresh()
