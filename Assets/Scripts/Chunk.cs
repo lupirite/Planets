@@ -5,6 +5,8 @@ using UnityEngine;
 using System;
 using System.Xml.XPath;
 using UnityEditor.Animations;
+using Unity.Jobs;
+using Unity.Collections;
 
 public class Chunk : MonoBehaviour
 {
@@ -35,7 +37,7 @@ public class Chunk : MonoBehaviour
     [HideInInspector] public Transform rootChunk;
     [HideInInspector]public int ID;
 
-    private Vector3[] originalVerts;
+    //private Vector3[] originalVerts;
     private void Start()
     {
         ID = (int)(chunkOffset.x*100) + (int)(chunkOffset.y*100);
@@ -108,7 +110,7 @@ public class Chunk : MonoBehaviour
             }
             else
             {
-                verts[vertPos.x * res + vertPos.y] = originalVerts[snapVertPos.x * res + snapVertPos.y];
+                //verts[vertPos.x * res + vertPos.y] = originalVerts[snapVertPos.x * res + snapVertPos.y];
             }
         }
         mesh.vertices = verts;
@@ -161,6 +163,7 @@ public class Chunk : MonoBehaviour
         }
     }
 
+    bool recenter = false;
     int frame = 0;
     private void Update()
     {
@@ -174,6 +177,7 @@ public class Chunk : MonoBehaviour
                 Destroy(transform.GetComponent<MeshRenderer>());
                 Destroy(transform.GetComponent<MeshFilter>());
 
+                Chunk[] chunksToMake = new Chunk[4];
                 for (int x = 0; x < 2; x++)
                 {
                     for (int y = 0; y < 2; y++)
@@ -198,7 +202,9 @@ public class Chunk : MonoBehaviour
                             gO.transform.position = (Vector3)(sphereGenerator.doublePos * (double)ScaleManager.instance.celestialScaleFactor);
                             //gO.transform.localScale *= ScaleManager.instance.celestialScaleFactor;
                             fullChunks[x * 2 + y] = gO;
-                            chunk.make(true);
+                            chunk.make();
+                            chunksToMake[x + y * 2] = chunk;
+                            recenter = true;
                             gO.transform.position = (Vector3)((VectorD3)gO.transform.position + chunk.offset * ScaleManager.instance.celestialScaleFactor);
                             gO.AddComponent<MeshCollider>().sharedMesh = gO.GetComponent<MeshFilter>().mesh;
 
@@ -242,17 +248,41 @@ public class Chunk : MonoBehaviour
                             gO.transform.position = transform.position;
                             gO.layer = 6;
                             chunk.make();
+                            chunksToMake[x + y * 2] = chunk;
                         }
 
                     }
                 }
+                var chunkDataArray = new NativeArray<Chunk.Data>(4, Allocator.TempJob);
+                for (int i = 0; i < 4; i++)
+                {
+                    chunkDataArray[i] = new Chunk.Data(chunksToMake[i]);
+                }
+                var job = new GenerateChunkJob
+                {
+                    ChunkDataArray = chunkDataArray
+                };
+                var jobHandle = job.Schedule(4, 1);
+                jobHandle.Complete();
+                chunkDataArray.Dispose();
             }
             else if (aLODLevel <= LODLevel && (transform.childCount > 0 || fullChunks[0]))
             {
                 destroyChunks();
-                generate();
+                addParts();
+                //generate();
             }
         }
+    }
+
+    void addParts()
+    {
+        if (GetComponent<MeshRenderer>())
+        {
+            return;
+        }
+        gameObject.AddComponent<MeshFilter>();
+        gameObject.AddComponent<MeshRenderer>();
     }
 
     int chunkRes;
@@ -273,8 +303,6 @@ public class Chunk : MonoBehaviour
 
         xAxis = new Vector3Int(dir[1], dir[2], dir[0]);
         yAxis = new Vector3Int(dir[2], dir[0], dir[1]);
-
-        generate(recenter);
     }
     /*
     double simplex3D(VectorD3 pos)
@@ -321,99 +349,6 @@ public class Chunk : MonoBehaviour
             i++;
         }
         return curChunk.GetComponent<Chunk>();
-    }
-    
-    void generate(bool recenter = false)
-    {
-        if (GetComponent<MeshRenderer>())
-        {
-            return;
-        }
-        gameObject.AddComponent<MeshFilter>();
-        gameObject.AddComponent<MeshRenderer>();
-
-        int i = 0;
-
-        VectorD3[] verts = new VectorD3[numVerts];
-        Vector2[] uvs = new Vector2[numVerts];
-        Vector2[] uv2 = new Vector2[numVerts];
-        int[] tris = new int[numTris];
-
-        for (int x = 0; x < chunkRes; x++)
-        {
-            for (int y = 0; y < chunkRes; y++)
-            {
-                double alt = 0.75d;
-                double temp = 0.5d;
-                double humidity = 0.5d;
-                VectorD3 pos = (mapCube((double)(chunkOffset.x*(chunkRes-1)) + (double)x * chunkScale, (double)(chunkOffset.y*(chunkRes-1)) + (double)y * chunkScale, chunkRes, xAxis, yAxis, dir).normalized() / 2 * sphereGenerator.diameter);
-
-                VectorD3 samplePos = (pos + (VectorD3)sphereGenerator.noiseOffset)/4;
-                samplePos += new VectorD3(SphereGenerator.simplex3D(samplePos + new VectorD3(1000, 200, 50) * .45d)/500, SphereGenerator.simplex3D(samplePos + new VectorD3(-1000, 200, 50) * .45d)/500, SphereGenerator.simplex3D(samplePos + new VectorD3(1000, -200, 50) * .45d)/500) + new VectorD3(SphereGenerator.simplex3D(samplePos + new VectorD3(1000, 200, 50) * 400d)/1000, SphereGenerator.simplex3D(samplePos + new VectorD3(-100, 200, 50) * 400d)/1000, SphereGenerator.simplex3D(samplePos + new VectorD3(1000, -2000, 50) * 400d)/1000);
-                
-                double height = SphereGenerator.getHeight(samplePos);
-                humidity = SphereGenerator.getHumidity(samplePos);
-                temp = Math.Pow(1 - (Math.Abs(pos.normalized().Dot((VectorD3)sphereGenerator.transform.up)) + .01d) * .9d, 1.5d)+SphereGenerator.simplex3D(pos*.1)/10;
-                alt = (height - sphereGenerator.minAlt) / (sphereGenerator.maxAlt - sphereGenerator.minAlt);
-
-                pos = (VectorD3)(sphereGenerator.transform.rotation * (pos * (1 + height)));
-                if (recenter && x == 0 && y == 0)
-                {
-                    offset = pos;
-                }
-
-                verts[i] = getVertPos(x, y);
-                if (recenter)
-                {
-                    verts[i] = verts[i] * (double)ScaleManager.instance.celestialScaleFactor;
-                }
-
-                uvs[i] = new Vector2((float)alt, (float)temp);
-                uv2[i] = new Vector2((float)humidity, 0);
-                i++;
-            }
-        }
-
-        i = 0;
-        for (int x = 0; x < chunkRes-1; x++)
-        {
-            for (int y = 0; y < chunkRes-1; y++)
-            {
-                int r = 0;
-                if (dir[0] < 0 || dir[1] < 0 || dir[2] < 0)
-                    r = 1;
-                tris[i] = x + chunkRes*y;
-                tris[i+1+r] = x + chunkRes*y + 1;
-                tris[i+2-r] = x + chunkRes*(1+y);
-                tris[i+3] = x + chunkRes*(1+y);
-                tris[i+4+r] = x + chunkRes * y + 1;
-                tris[i+5-r] = x + chunkRes*(y+1) + 1;
-                i += 6;
-            }
-        }
-
-        Mesh mesh = new Mesh();
-
-        Vector3[] vector3Array = new Vector3[verts.Length];
-
-        for (int g = 0; g < verts.Length; g++)
-        {
-            vector3Array[g] = new Vector3((float)verts[g].x, (float)verts[g].y, (float)verts[g].z);
-        }
-
-        mesh.vertices = vector3Array;
-        originalVerts = mesh.vertices;
-        mesh.triangles = tris;
-        mesh.uv = uvs;
-        mesh.uv2 = uv2;
-        mesh.RecalculateNormals();
-        mesh.RecalculateBounds();
-        GetComponent<MeshFilter>().mesh = mesh;
-        GetComponent<MeshRenderer>().material = sphereGenerator.material;
-
-        center = mesh.bounds.center;
-
-        normal = Quaternion.Inverse(sphereGenerator.transform.rotation) * (center + (Vector3)offset).normalized;
     }
 
     public VectorD3 getVertPos(int x, int y)
@@ -474,5 +409,153 @@ public class Chunk : MonoBehaviour
     public static double mapSide(double x, int chunkRes)
     {
         return (x / (float)(chunkRes - 1) - .5f);
+    }
+
+    public struct Data
+    {
+        VectorD2 chunkOffset;
+        int chunkRes;
+        Vector3 noiseOffset;
+        float chunkScale;
+        Vector3Int xAxis, yAxis;
+        Vector3Int dir;
+        float diameter;
+        Quaternion planetRot;
+        Vector3 planetUp;
+        VectorD3 offset;
+        int numVerts;
+        int numTris;
+        float minAlt;
+        float maxAlt;
+        bool recenter;
+        Mesh mesh;
+
+        public Data(Chunk chunk)
+        {
+            chunkOffset = chunk.chunkOffset;
+            chunkRes = chunk.chunkRes;
+            noiseOffset = chunk.sphereGenerator.noiseOffset;
+            chunkScale = chunk.chunkScale;
+            xAxis = chunk.xAxis;
+            yAxis = chunk.yAxis;
+            dir = chunk.dir;
+            diameter = chunk.sphereGenerator.diameter;
+            planetRot = chunk.sphereGenerator.transform.rotation;
+            offset = chunk.offset;
+            numVerts = chunk.numVerts;
+            numTris = chunk.numTris;
+            planetUp = chunk.sphereGenerator.transform.up;
+            minAlt = chunk.sphereGenerator.minAlt;
+            maxAlt = chunk.sphereGenerator.maxAlt;
+            recenter = chunk.recenter;
+            mesh = new Mesh();
+        }
+        public VectorD3 getVertPos(int x, int y)
+        {
+            VectorD3 pos = (mapCube((double)(chunkOffset.x * (chunkRes - 1)) + (double)x * chunkScale, (double)(chunkOffset.y * (chunkRes - 1)) + (double)y * chunkScale, chunkRes, xAxis, yAxis, dir).normalized() / 2 * diameter);
+
+            VectorD3 samplePos = (pos + (VectorD3)noiseOffset) / 4;
+            samplePos += new VectorD3(SphereGenerator.simplex3D(samplePos + new VectorD3(1000, 200, 50) * .45d) / 500, SphereGenerator.simplex3D(samplePos + new VectorD3(-1000, 200, 50) * .45d) / 500, SphereGenerator.simplex3D(samplePos + new VectorD3(1000, -200, 50) * .45d) / 500) + new VectorD3(SphereGenerator.simplex3D(samplePos + new VectorD3(1000, 200, 50) * 400d) / 1000, SphereGenerator.simplex3D(samplePos + new VectorD3(-100, 200, 50) * 400d) / 1000, SphereGenerator.simplex3D(samplePos + new VectorD3(1000, -2000, 50) * 400d) / 1000);
+
+            double height = SphereGenerator.getHeight(samplePos);
+
+            pos = (VectorD3)(planetRot * (pos * (1 + height)));
+
+            return (pos - offset);
+        }
+        public void generate()
+        {
+            int i = 0;
+
+            VectorD3[] verts = new VectorD3[numVerts];
+            Vector2[] uvs = new Vector2[numVerts];
+            Vector2[] uv2 = new Vector2[numVerts];
+            int[] tris = new int[numTris];
+
+            for (int x = 0; x < chunkRes; x++)
+            {
+                for (int y = 0; y < chunkRes; y++)
+                {
+                    double alt = 0.75d;
+                    double temp = 0.5d;
+                    double humidity = 0.5d;
+                    VectorD3 pos = (mapCube((double)(chunkOffset.x * (chunkRes - 1)) + (double)x * chunkScale, (double)(chunkOffset.y * (chunkRes - 1)) + (double)y * chunkScale, chunkRes, xAxis, yAxis, dir).normalized() / 2 * diameter);
+
+                    VectorD3 samplePos = (pos + (VectorD3)noiseOffset) / 4;
+                    samplePos += new VectorD3(SphereGenerator.simplex3D(samplePos + new VectorD3(1000, 200, 50) * .45d) / 500, SphereGenerator.simplex3D(samplePos + new VectorD3(-1000, 200, 50) * .45d) / 500, SphereGenerator.simplex3D(samplePos + new VectorD3(1000, -200, 50) * .45d) / 500) + new VectorD3(SphereGenerator.simplex3D(samplePos + new VectorD3(1000, 200, 50) * 400d) / 1000, SphereGenerator.simplex3D(samplePos + new VectorD3(-100, 200, 50) * 400d) / 1000, SphereGenerator.simplex3D(samplePos + new VectorD3(1000, -2000, 50) * 400d) / 1000);
+
+                    double height = SphereGenerator.getHeight(samplePos);
+                    humidity = SphereGenerator.getHumidity(samplePos);
+                    temp = Math.Pow(1 - (Math.Abs(pos.normalized().Dot((VectorD3)planetUp)) + .01d) * .9d, 1.5d) + SphereGenerator.simplex3D(pos * .1) / 10;
+                    alt = (height - minAlt) / (maxAlt - minAlt);
+
+                    pos = (VectorD3)(planetRot * (pos * (1 + height)));
+                    if (recenter && x == 0 && y == 0)
+                    {
+                        offset = pos;
+                    }
+
+                    verts[i] = getVertPos(x, y);
+                    if (recenter)
+                    {
+                        verts[i] = verts[i] * (double)ScaleManager.instance.celestialScaleFactor;
+                    }
+
+                    uvs[i] = new Vector2((float)alt, (float)temp);
+                    uv2[i] = new Vector2((float)humidity, 0);
+                    i++;
+                }
+            }
+
+            i = 0;
+            for (int x = 0; x < chunkRes - 1; x++)
+            {
+                for (int y = 0; y < chunkRes - 1; y++)
+                {
+                    int r = 0;
+                    if (dir[0] < 0 || dir[1] < 0 || dir[2] < 0)
+                        r = 1;
+                    tris[i] = x + chunkRes * y;
+                    tris[i + 1 + r] = x + chunkRes * y + 1;
+                    tris[i + 2 - r] = x + chunkRes * (1 + y);
+                    tris[i + 3] = x + chunkRes * (1 + y);
+                    tris[i + 4 + r] = x + chunkRes * y + 1;
+                    tris[i + 5 - r] = x + chunkRes * (y + 1) + 1;
+                    i += 6;
+                }
+            }
+
+            Vector3[] vector3Array = new Vector3[verts.Length];
+
+            for (int g = 0; g < verts.Length; g++)
+            {
+                vector3Array[g] = new Vector3((float)verts[g].x, (float)verts[g].y, (float)verts[g].z);
+            }
+
+            mesh.vertices = vector3Array;
+            //originalVerts = mesh.vertices;
+            mesh.triangles = tris;
+            mesh.uv = uvs;
+            mesh.uv2 = uv2;
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            //GetComponent<MeshFilter>().mesh = mesh;
+            //GetComponent<MeshRenderer>().material = sphereGenerator.material;
+
+            //center = mesh.bounds.center;
+
+            //normal = Quaternion.Inverse(sphereGenerator.transform.rotation) * (center + (Vector3)offset).normalized;
+        }
+    }
+}
+
+public struct GenerateChunkJob : IJobParallelFor
+{
+    public NativeArray<Chunk.Data> ChunkDataArray;
+    public void Execute(int index)
+    {
+        var data = ChunkDataArray[index];
+        data.generate();
+        ChunkDataArray[index] = data;
     }
 }
