@@ -52,10 +52,10 @@ public class FullChunk : MonoBehaviour
                     GetComponent<MeshRenderer>().enabled = false;
                     marchingChunk = new GameObject("MarchingChunk");
                     marchingChunk.transform.parent = transform;
-                    marchingChunk.AddComponent<MarchingChunkGenerator>();
+                    //marchingChunk.AddComponent<MarchingChunkGenerator>();
 
-                    MarchingChunkGenerator cg = marchingChunk.GetComponent<MarchingChunkGenerator>();
-                    cg.chunkOffset = GetComponent<Chunk>().chunkOffset;
+                    //MarchingChunkGenerator cg = marchingChunk.GetComponent<MarchingChunkGenerator>();
+                    //cg.chunkOffset = GetComponent<Chunk>().chunkOffset;
                 }
             }
             else

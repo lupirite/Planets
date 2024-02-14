@@ -36,21 +36,6 @@ public class Chunk : MonoBehaviour
     [HideInInspector]public int ID;
 
     private Vector3[] originalVerts;
-    private void Start()
-    {
-        ID = (int)(chunkOffset.x*100) + (int)(chunkOffset.y*100);
-        /* 
-        getAdjacentChunks();
-        foreach (var chunk in adjacentChunks)
-        {
-            if (chunk == null)
-            {
-                continue;
-            }
-            chunk.chRefresh();
-        }
-        refreshSeams();*/
-    }
 
     public void chRefresh()
     {
@@ -192,7 +177,6 @@ public class Chunk : MonoBehaviour
                             chunk.sphereGenerator = sphereGenerator;
                             chunk.LODLevel = LODLevel + 1;
                             float nChunkScale = 1 / Mathf.Pow(2, LODLevel + 1);
-                            //print(((float)sphereGenerator.chunkRes / (float)sphereGenerator.fullScaleRes));
                             chunk.chunkScale = nChunkScale * ((float)sphereGenerator.chunkRes / (float)sphereGenerator.chunkRes);
                             chunk.chunkOffset = chunkOffset + new VectorD2(x, y) * nChunkScale;
                             gO.transform.position = (Vector3)(sphereGenerator.doublePos * (double)ScaleManager.instance.celestialScaleFactor);
@@ -250,7 +234,7 @@ public class Chunk : MonoBehaviour
             else if (aLODLevel <= LODLevel && (transform.childCount > 0 || fullChunks[0]))
             {
                 destroyChunks();
-                generate();
+                scheduleGeneration();
             }
         }
     }
@@ -258,6 +242,7 @@ public class Chunk : MonoBehaviour
     int chunkRes;
     int numVerts;
     int numTris;
+    bool mustRecenter;
     public void make(bool recenter=false)
     {
         if (Application.isPlaying)
@@ -274,8 +259,16 @@ public class Chunk : MonoBehaviour
         xAxis = new Vector3Int(dir[1], dir[2], dir[0]);
         yAxis = new Vector3Int(dir[2], dir[0], dir[1]);
 
-        generate(recenter);
+        scheduleGeneration(recenter);
     }
+
+    public void scheduleGeneration(bool recenter=false)
+    {
+        mustRecenter = recenter;
+
+        generate();
+    }
+
     /*
     double simplex3D(VectorD3 pos)
     {
@@ -322,8 +315,31 @@ public class Chunk : MonoBehaviour
         }
         return curChunk.GetComponent<Chunk>();
     }
-    
-    void generate(bool recenter = false)
+
+    VectorD3[] verts;
+    Vector2[] uvs;
+    Vector2[] uv2;
+    int[] tris;
+    Vector3[] vector3Array;
+
+    private void Start()
+    {
+        ID = (int)(chunkOffset.x * 100) + (int)(chunkOffset.y * 100);
+
+        /* 
+        getAdjacentChunks();
+        foreach (var chunk in adjacentChunks)
+        {
+            if (chunk == null)
+            {
+                continue;
+            }
+            chunk.chRefresh();
+        }
+        refreshSeams();*/
+    }
+
+    void applyMesh()
     {
         if (GetComponent<MeshRenderer>())
         {
@@ -332,12 +348,32 @@ public class Chunk : MonoBehaviour
         gameObject.AddComponent<MeshFilter>();
         gameObject.AddComponent<MeshRenderer>();
 
-        int i = 0;
+        Mesh mesh = new Mesh();
 
-        VectorD3[] verts = new VectorD3[numVerts];
-        Vector2[] uvs = new Vector2[numVerts];
-        Vector2[] uv2 = new Vector2[numVerts];
-        int[] tris = new int[numTris];
+        mesh.vertices = vector3Array;
+        originalVerts = mesh.vertices;
+        mesh.triangles = tris;
+        mesh.uv = uvs;
+        mesh.uv2 = uv2;
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+
+        center = mesh.bounds.center;
+
+        normal = Quaternion.Inverse(sphereGenerator.transform.rotation) * (center + (Vector3)offset).normalized;
+
+        GetComponent<MeshFilter>().mesh = mesh;
+        GetComponent<MeshRenderer>().material = sphereGenerator.material;
+    }
+    
+    void generate()
+    {
+        verts = new VectorD3[numVerts];
+        uvs = new Vector2[numVerts];
+        uv2 = new Vector2[numVerts];
+        tris = new int[numTris];
+
+        int i = 0;
 
         for (int x = 0; x < chunkRes; x++)
         {
@@ -357,13 +393,13 @@ public class Chunk : MonoBehaviour
                 alt = (height - sphereGenerator.minAlt) / (sphereGenerator.maxAlt - sphereGenerator.minAlt);
 
                 pos = (VectorD3)(sphereGenerator.transform.rotation * (pos * (1 + height)));
-                if (recenter && x == 0 && y == 0)
+                if (mustRecenter && x == 0 && y == 0)
                 {
                     offset = pos;
                 }
 
                 verts[i] = getVertPos(x, y);
-                if (recenter)
+                if (mustRecenter)
                 {
                     verts[i] = verts[i] * (double)ScaleManager.instance.celestialScaleFactor;
                 }
@@ -392,28 +428,14 @@ public class Chunk : MonoBehaviour
             }
         }
 
-        Mesh mesh = new Mesh();
-
-        Vector3[] vector3Array = new Vector3[verts.Length];
+        vector3Array = new Vector3[verts.Length];
 
         for (int g = 0; g < verts.Length; g++)
         {
             vector3Array[g] = new Vector3((float)verts[g].x, (float)verts[g].y, (float)verts[g].z);
         }
 
-        mesh.vertices = vector3Array;
-        originalVerts = mesh.vertices;
-        mesh.triangles = tris;
-        mesh.uv = uvs;
-        mesh.uv2 = uv2;
-        mesh.RecalculateNormals();
-        mesh.RecalculateBounds();
-        GetComponent<MeshFilter>().mesh = mesh;
-        GetComponent<MeshRenderer>().material = sphereGenerator.material;
-
-        center = mesh.bounds.center;
-
-        normal = Quaternion.Inverse(sphereGenerator.transform.rotation) * (center + (Vector3)offset).normalized;
+        applyMesh();
     }
 
     public VectorD3 getVertPos(int x, int y)
