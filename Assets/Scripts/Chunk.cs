@@ -231,7 +231,7 @@ public class Chunk : MonoBehaviour
                     }
                 }
             }
-            else if (aLODLevel <= LODLevel && (transform.childCount > 0 || fullChunks[0]))
+            else if (aLODLevel <= LODLevel && (fullChunks[0] || (transform.childCount > 0 && !(LODLevel >= sphereGenerator.LODLevels - 2))))
             {
                 destroyChunks();
                 scheduleGeneration();
@@ -267,6 +267,12 @@ public class Chunk : MonoBehaviour
         mustRecenter = recenter;
 
         generate();
+
+        /*
+        ScheduledChunkGeneration scheduledChunk = new ScheduledChunkGeneration();
+        scheduledChunk.chunk = this;
+        scheduledChunk.recenter = recenter;
+        sphereGenerator.scheduledChunks.Add(scheduledChunk);*/
     }
 
     /*

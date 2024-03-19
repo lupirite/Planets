@@ -22,6 +22,8 @@ public class SphereGenerator : MonoBehaviour
     public float maxAlt;
     public float smoothingAngle = 5;
     public int resizeCheckFrameInterval = 5;
+    [HideInInspector]
+    public List<ScheduledChunkGeneration> scheduledChunks = new List<ScheduledChunkGeneration>();
     [Header("Editor")]
     [Range(2, 255)]
     public int res;
@@ -85,7 +87,7 @@ public class SphereGenerator : MonoBehaviour
 
     private void Update()
     {
-        surfaceAngle = -99;
+        
     }
 
     public static Transform getNearest(Vector3 pos)
@@ -188,6 +190,13 @@ public class SphereGenerator : MonoBehaviour
     {
         return DoubleNoise.doubleNoise.Evaluate(pos.x, pos.y, pos.z);
     }
+}
+
+public class ScheduledChunkGeneration
+{
+    public Chunk chunk;
+    public bool recenter = false;
+
 }
 
 #if UNITY_EDITOR
