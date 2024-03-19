@@ -97,8 +97,44 @@ public class Chunk : MonoBehaviour
             }
         }
         mesh.vertices = verts;
-        mesh.RecalculateNormals();
+        mesh.normals = generateNormals();
         GetComponent<MeshFilter>().mesh = mesh;
+    }
+
+    Vector3[] generateNormals()
+    {
+        Vector3[] normals = new Vector3[numVerts];
+        for (int x = 0; x < chunkRes; x++)
+        {
+            for (int y = 0; y < chunkRes; y++)
+            {
+                Vector3 curPos = (Vector3)verts[(x * chunkRes) + y];
+                Vector3 posA = getVert(x+1, y);
+                Vector3 posB = getVert(x, y+1);
+
+                Vector3 dirA = posA - curPos;
+                Vector3 dirB = posB - curPos;
+
+                Vector3 pVec = -Vector3.Cross(dirA, dirB);
+
+                normals[x * chunkRes + y] = (pVec * 100).normalized;
+            }
+        }
+        
+        return normals;
+    }
+
+    Vector3 getVert(int x, int y)
+    {
+        if (x >= 0 && y >= 0 && x < chunkRes && y < chunkRes) {
+            return (Vector3)verts[(x * chunkRes) + y];
+        }
+        VectorD3 vert = getVertPos(x, y);
+        if (mustRecenter)
+        {
+            vert = vert * (double)ScaleManager.instance.celestialScaleFactor;
+        }
+        return (Vector3)vert;
     }
 
     public void refreshSeams()
@@ -332,17 +368,19 @@ public class Chunk : MonoBehaviour
     {
         ID = (int)(chunkOffset.x * 100) + (int)(chunkOffset.y * 100);
 
-        /* 
-        getAdjacentChunks();
-        foreach (var chunk in adjacentChunks)
+        if (sphereGenerator.correctSeams)
         {
-            if (chunk == null)
+            getAdjacentChunks();
+            foreach (var chunk in adjacentChunks)
             {
-                continue;
+                if (chunk == null)
+                {
+                    continue;
+                }
+                chunk.chRefresh();
             }
-            chunk.chRefresh();
+            refreshSeams();
         }
-        refreshSeams();*/
     }
 
     void applyMesh()
@@ -361,7 +399,7 @@ public class Chunk : MonoBehaviour
         mesh.triangles = tris;
         mesh.uv = uvs;
         mesh.uv2 = uv2;
-        mesh.RecalculateNormals();
+        mesh.normals = generateNormals();
         mesh.RecalculateBounds();
 
         center = mesh.bounds.center;

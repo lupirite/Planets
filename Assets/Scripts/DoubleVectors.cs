@@ -27,6 +27,11 @@ public struct VectorD3
         return new VectorD3(a.x - b.x, a.y - b.y, a.z - b.z);
     }
 
+    public static VectorD3 operator -(VectorD3 a)
+    {
+        return new VectorD3(-a.x, -a.y, -a.z);
+    }
+
     public static VectorD3 operator *(VectorD3 a, double b)
     {
         return new VectorD3(a.x * b, a.y * b, a.z * b);
@@ -74,6 +79,11 @@ public struct VectorD3
     public double Dot(VectorD3 other)
     {
         return x * other.x + y * other.y + z * other.z;
+    }
+
+    public VectorD3 Cross(VectorD3 other)
+    {
+        return new VectorD3(y*other.z - z*other.y, z*other.x - x*other.z, x*other.y - y*other.x);
     }
 
     public static readonly VectorD3 zero = new VectorD3(0, 0, 0);

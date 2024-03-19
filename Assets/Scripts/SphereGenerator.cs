@@ -22,6 +22,7 @@ public class SphereGenerator : MonoBehaviour
     public float maxAlt;
     public float smoothingAngle = 5;
     public int resizeCheckFrameInterval = 5;
+    public bool correctSeams;
     [HideInInspector]
     public List<ScheduledChunkGeneration> scheduledChunks = new List<ScheduledChunkGeneration>();
     [Header("Editor")]
