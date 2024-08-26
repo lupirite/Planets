@@ -302,13 +302,12 @@ public class Chunk : MonoBehaviour
     {
         mustRecenter = recenter;
 
-        generate();
+        //generate();
 
-        /*
         ScheduledChunkGeneration scheduledChunk = new ScheduledChunkGeneration();
         scheduledChunk.chunk = this;
         scheduledChunk.recenter = recenter;
-        sphereGenerator.scheduledChunks.Add(scheduledChunk);*/
+        sphereGenerator.scheduledChunks.Add(scheduledChunk);
     }
 
     /*

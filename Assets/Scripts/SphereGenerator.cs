@@ -197,7 +197,7 @@ public class ScheduledChunkGeneration
 {
     public Chunk chunk;
     public bool recenter = false;
-
+    public bool generating = true;
 }
 
 #if UNITY_EDITOR
